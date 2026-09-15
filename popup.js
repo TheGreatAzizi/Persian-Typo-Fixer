@@ -1,4 +1,4 @@
-﻿// Persian Typo Fixer | popup.js | By TheAzizi | v1.4.1
+﻿// Persian Typo Fixer | popup.js | By TheAzizi | v1.4.3
 const ALL_KEYS = Object.keys(PTF_DEFAULTS);
 const testInput = document.getElementById('testInput');
 const testResult = document.getElementById('testResult');
@@ -49,7 +49,8 @@ function updateTest(){
   }
   testResult.classList.remove('empty');
   if(!/[\u0600-\u06FF]/.test(val)){ testResult.textContent = val; renderNotices(''); return; }
-  const fixed = ptfFixText(val, opts);
+  // مثل تایپ واقعی (live) تا وسط کلمه ادغام نشود
+  const fixed = ptfFixText(val, { ...opts, live: true });
   testResult.textContent = fixed;
   renderNotices(fixed);
 }

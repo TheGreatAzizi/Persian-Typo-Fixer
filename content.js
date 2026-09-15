@@ -1,4 +1,4 @@
-﻿// Persian Typo Fixer | content.js | By TheAzizi | v1.4.1
+﻿// Persian Typo Fixer | content.js | By TheAzizi | v1.4.3
 // استفاده از fixes.js مشترک
 
 let settings = { ...PTF_DEFAULTS };
@@ -31,15 +31,20 @@ function ptfFireInput(el) {
   }
 }
 
-function fixInputElement(el) {
+function ptfOpts(live) {
+  return live ? { ...settings, live: true } : settings;
+}
+
+function fixInputElement(el, live) {
   if (!el || el.readOnly || el.disabled) return;
+  const opts = ptfOpts(live !== false);
   let start = null, end = null;
   try { start = el.selectionStart; end = el.selectionEnd; } catch(e) {}
   const oldVal = el.value;
-  const newVal = ptfFixText(oldVal, settings);
+  const newVal = ptfFixText(oldVal, opts);
   if (newVal === oldVal) return;
   const beforeOld = oldVal.slice(0, start == null ? oldVal.length : start);
-  const beforeNew = ptfFixText(beforeOld, settings);
+  const beforeNew = ptfFixText(beforeOld, opts);
   const diff = beforeNew.length - beforeOld.length;
   ptfSetNativeValue(el, newVal);
   try {
@@ -47,8 +52,9 @@ function fixInputElement(el) {
   } catch(e) {}
 }
 
-function fixContentEditable(el) {
+function fixContentEditable(el, live) {
   if (!el || el.isContentEditable === false) return;
+  const opts = ptfOpts(live !== false);
   const sel = window.getSelection();
   if (!sel || sel.rangeCount === 0) return;
   const range = sel.getRangeAt(0);
@@ -68,14 +74,14 @@ function fixContentEditable(el) {
   let foundOffset = 0;
   // اول offset جدید را با کل متن حساب کن
   const oldFull = nodes.map(n => n.nodeValue).join('');
-  const newFull = ptfFixText(oldFull, settings);
+  const newFull = ptfFixText(oldFull, opts);
   if (newFull === oldFull) return;
   const beforeOld = oldFull.slice(0, startOffset);
-  const beforeNew = ptfFixText(beforeOld, settings);
+  const beforeNew = ptfFixText(beforeOld, opts);
   const newOffset = startOffset + (beforeNew.length - beforeOld.length);
 
   for (const n of nodes) {
-    const newVal = ptfFixText(n.nodeValue, settings);
+    const newVal = ptfFixText(n.nodeValue, opts);
     if (newVal !== n.nodeValue) n.nodeValue = newVal;
     const len = n.nodeValue.length;
     if (found === null && newOffset >= curPos && newOffset <= curPos + len) {
@@ -131,9 +137,10 @@ function ptfTextLen(el) {
 
 // تایمر جدا برای هر فیلد تا فیلدها مزاحم هم نشوند
 const ptfTimers = new WeakMap();
-function scheduleFix(el, delay) {
+function scheduleFix(el, delay, live) {
   if (!el || !settings.enabled || ptfSiteOff()) return;
   if (delay == null) delay = 150;
+  if (live == null) live = true; // حین تایپ: حالت live (ته متن ناتمام مرز نیست)
   // متن‌های غول‌پیکر را حین تایپ سنگین نکن — روی خروج از فیلد فیکس می‌شوند
   if (delay < 1000 && ptfTextLen(el) > 60000) delay = 1200;
   try {
@@ -143,25 +150,26 @@ function scheduleFix(el, delay) {
   try {
     ptfTimers.set(el, setTimeout(() => {
       try { ptfTimers.delete(el); } catch(e) {}
-      runFixOnElement(el);
+      runFixOnElement(el, live);
     }, delay));
   } catch(e) {
-    runFixOnElement(el);
+    runFixOnElement(el, live);
   }
 }
 
-function runFixOnElement(el) {
+function runFixOnElement(el, live) {
   if (!el || !settings.enabled || ptfSiteOff()) return;
+  if (live == null) live = true;
   try {
     if (!el.isConnected && el !== document.body && el !== document.documentElement) {
       // المنت از DOM حذف شده — رها کن
     }
   } catch(e) {}
   if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') {
-    fixInputElement(el);
+    fixInputElement(el, live);
     checkNoticesForText(el.value);
   } else if (el.isContentEditable) {
-    fixContentEditable(el);
+    fixContentEditable(el, live);
     checkNoticesForText(el.innerText || el.textContent || '');
   }
 }
@@ -283,34 +291,37 @@ function ptfOnInput(e) {
   try { ptfLastInputAt = Date.now(); } catch(err) {}
   const t = resolveEditableTarget(e);
   if (!t) return;
-  // سر مرز کلمه (فاصله/نقطه‌گذاری/انتر) فوری فیکس کن تا حس «زنده» بدهد
-  scheduleFix(t, ptfIsWordBoundaryInput(e) ? 25 : 150);
+  // سر مرز کلمه (فاصله/نقطه‌گذاری/انتر) فوری فیکس کن تا حس «زنده» بدهد — حالت live
+  scheduleFix(t, ptfIsWordBoundaryInput(e) ? 25 : 150, true);
 }
 
 function ptfOnKeyDown(e) {
   if (e.key !== ' ' && e.key !== 'Enter') return;
   const t = resolveEditableTarget(e);
   if (!t) return;
-  setTimeout(() => scheduleFix(t, 30), 25);
+  // انتر یعنی متن تمام شده (ارسال) — حالت کامل؛ فاصله یعنی ادامه دارد — live
+  if (e.key === 'Enter') setTimeout(() => scheduleFix(t, 30, false), 25);
+  else setTimeout(() => scheduleFix(t, 30, true), 25);
 }
 
 function ptfOnPaste(e) {
   const t = resolveEditableTarget(e);
   if (!t) return;
-  setTimeout(() => scheduleFix(t, 40), 40);
+  // متن پیست‌شده کامل است — حالت کامل
+  setTimeout(() => scheduleFix(t, 40, false), 40);
 }
 
 function ptfOnFocusIn(e) {
-  // فیلدهای از قبل پرشده (درافت بازیابی‌شده و ...) موقع فوکس فیکس شوند
+  // فیلدهای از قبل پرشده (درافت بازیابی‌شده و ...) موقع فوکس فیکس شوند — live چون ممکن است وسط کلمه باشد
   const t = resolveEditableTarget(e);
   if (!t) return;
-  scheduleFix(t, 60);
+  scheduleFix(t, 60, true);
 }
 
 function ptfOnChange(e) {
   const t = resolveEditableTarget(e);
   if (!t) return;
-  runFixOnElement(t);
+  runFixOnElement(t, false);
 }
 
 function ptfOnFocusOut(e) {
@@ -320,7 +331,8 @@ function ptfOnFocusOut(e) {
     const old = ptfTimers.get(t);
     if (old) { clearTimeout(old); ptfTimers.delete(t); }
   } catch(e) {}
-  runFixOnElement(t);
+  // خروج از فیلد یعنی تایپ تمام شده — حالت کامل
+  runFixOnElement(t, false);
 }
 
 // لیسنرها را به یک روت (document یا shadowRoot) وصل کن

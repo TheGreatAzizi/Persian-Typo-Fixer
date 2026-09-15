@@ -1,4 +1,4 @@
-﻿// Persian Typo Fixer | fixes.js | By TheAzizi | v1.4.1
+﻿// Persian Typo Fixer | fixes.js | By TheAzizi | v1.4.3
 // موتور جامع اصلاح فارسی - shared بین content/popup/options
 
 const PTF_DEFAULTS = {
@@ -198,28 +198,34 @@ function ptfNormalizeZWNJSpaces(t) {
   return out;
 }
 
-function ptfFixZWNJ(t) {
+function ptfFixZWNJ(t, live) {
   let out = t;
   // مرز فارسی: بعدش حرف فارسی/نیم‌فاصله نباشد (جایگزین مرز ASCII که برای فارسی کار نمی‌کند)
   const FA_END = '(?![\\u0600-\\u06FF\\u200C])';
-  // پیشوند می/نمی/بی با فاصله -> نیم‌فاصله
+  // حالت live (وسط تایپ): تهِ متن مرز حساب نمی‌شود تا «بخوابیم ام»ِ در حال تایپِ «اما»
+  // با قانون ضمیر قاطی نشود — این‌ها موقع خروج از فیلد/پیست اعمال می‌شوند
+  const END = live ? '(?=[\\s.,،:؛!؟\\)\\]\\["\'»])' : FA_END;
+  // پیشوند می/نمی/بی با فاصله -> نیم‌فاصله (حین تایپ هم امن است)
   out = out.replace(/(^|[\s\u200C\(\["'«])(می)\s+/g, '$1می\u200C');
   out = out.replace(/(^|[\s\u200C\(\["'«])(نمی)\s+/g, '$1نمی\u200C');
   out = out.replace(/(^|[\s\u200C\(\["'«])(بی)\s+/g, '$1بی\u200C');
   // پایه «ه» + ضمیر/ای -> نیم‌فاصله: خانه ام -> خانه‌ام
-  out = out.replace(new RegExp('([\\u0600-\\u06FF]+ه)\\s+(ام|ات|اش|مان|تان|شان|ای|ایم|اید|اند|یی|یم|یت|یش)' + FA_END, 'g'), '$1\u200C$2');
-  out = out.replace(/([\u0600-\u06FF]+ه)\s+ی(\s|$|[.,،:؛!؟\)\]\s])/g, '$1\u200Cی$2');
+  out = out.replace(new RegExp('([\\u0600-\\u06FF]+ه)\\s+(ام|ات|اش|مان|تان|شان|ای|ایم|اید|اند|یی|یم|یت|یش)' + END, 'g'), '$1\u200C$2');
+  // خانه ی -> خانه‌ی (در live ته متن حساب نیست تا «خانه یادبود» خراب نشود)
+  out = live
+    ? out.replace(/([\u0600-\u06FF]+ه)\s+ی([\s.,،:؛!؟\)\]])/g, '$1\u200Cی$2')
+    : out.replace(/([\u0600-\u06FF]+ه)\s+ی(\s|$|[.,،:؛!؟\)\]\s])/g, '$1\u200Cی$2');
   // پایه غیر «ه» + ضمیر -> چسبیده: کتاب ام -> کتابم (الف می‌افتد)، کتاب مان -> کتابمان
-  out = out.replace(new RegExp('([\\u0627\\u0628\\u067E\\u062A\\u062B\\u062C\\u0686\\u062D\\u062E\\u062F\\u0630\\u0631\\u0632\\u0698\\u0633\\u0634\\u0635\\u0636\\u0637\\u0638\\u0639\\u063A\\u0641\\u0642\\u06A9\\u06AF\\u0644\\u0645\\u0646\\u0648\\u06CC])\\s+(ام|ات|اش|مان|تان|شان)' + FA_END, 'g'), (m, base, suf) => {
+  out = out.replace(new RegExp('([\\u0627\\u0628\\u067E\\u062A\\u062B\\u062C\\u0686\\u062D\\u062E\\u062F\\u0630\\u0631\\u0632\\u0698\\u0633\\u0634\\u0635\\u0636\\u0637\\u0638\\u0639\\u063A\\u0641\\u0642\\u06A9\\u06AF\\u0644\\u0645\\u0646\\u0648\\u06CC])\\s+(ام|ات|اش|مان|تان|شان)' + END, 'g'), (m, base, suf) => {
     if (suf === 'ام') return base + 'م';
     if (suf === 'ات') return base + 'ت';
     if (suf === 'اش') return base + 'ش';
     return base + suf;
   });
   // به/کم/بیش + تر با فاصله -> چسبیده: به تر -> بهتر (نه به‌تر)
-  out = out.replace(/(^|[\s\u200C\(\["'«])(به|کم|بیش)\s+(ترین|تری|تر)(?![\u0600-\u06FF\u200C])/g, '$1$2$3');
+  out = out.replace(new RegExp('(^|[\\s\\u200C\\(\["\'«])(به|کم|بیش)\\s+(ترین|تری|تر)' + END, 'g'), '$1$2$3');
   // پسوند ها/تر با فاصله -> نیم‌فاصله
-  out = out.replace(new RegExp('([\\u0600-\\u06FF])\\s+(هایمان|هایتان|هایشان|هایم|هایت|هایش|هایی|های|ها|ترین|تری|تر)' + FA_END, 'g'), '$1\u200C$2');
+  out = out.replace(new RegExp('([\\u0600-\\u06FF])\\s+(هایمان|هایتان|هایشان|هایم|هایت|هایش|هایی|های|ها|ترین|تری|تر)' + END, 'g'), '$1\u200C$2');
   // می/نمی چسبیده بدون فاصله: میخواستم -> می‌خواستم (با استثنا: میز، میدان...)
   out = out.replace(/(^|[\s\u200C\(\["'«])می([\u0600-\u06FF]{2,})(?![\u0600-\u06FF\u200C])/g, (m, pre, rest) => {
     const full = 'می' + rest;
@@ -387,17 +393,20 @@ function ptfFixText(text, opts) {
   if (opts.fixTashkeel) out = ptfFixTashkeel(out);
   if (opts.fixArabicYK) out = ptfFixArabicYK(out);
   if (opts.fixArabicAlef) out = ptfFixArabicAlef(out);
+  // حالت live (وسط تایپ): تهِ متنِ ناتمام مرز پسوند حساب نمی‌شود تا
+  // «بخوابیم ام»ِ در حال تایپِ «اما» با قانون ضمیر قاطی نشود
+  const live = !!(opts && opts.live);
   if (opts.fixArabicDigits) out = ptfFixArabicDigits(out);
   if (opts.fixLatinDigits) out = ptfFixLatinDigits(out);
   out = ptfNormalizeZWNJSpaces(out);
-  if (opts.fixZWNJ) out = ptfFixZWNJ(out);
+  if (opts.fixZWNJ) out = ptfFixZWNJ(out, live);
   if (opts.fixCompounds) out = ptfFixCompounds(out);
-  if (opts.fixZWNJ) out = ptfFixZWNJ(out); // دومین پاس برای ترکیبات جدید
+  if (opts.fixZWNJ) out = ptfFixZWNJ(out, live); // دومین پاس برای ترکیبات جدید
   if (opts.fixAttachedHa) out = ptfFixAttachedHa(out);
   if (opts.fixCommonTypos) out = ptfFixCommonTypos(out);
   if (opts.fixCompounds) out = ptfFixStems(out);
   if (opts.fixCompounds) out = ptfFixAttachedWords(out);
-  if (opts.fixZWNJ) out = ptfFixZWNJ(out); // سومین پاس برای کلمات جدید
+  if (opts.fixZWNJ) out = ptfFixZWNJ(out, live); // سومین پاس برای کلمات جدید
   if (opts.fixSeparators) out = ptfFixSeparators(out);
   if (opts.fixPunctuation) out = ptfFixPunctuationSpacing(out);
   if (opts.fixPersianPunct) out = ptfFixPersianPunct(out);
