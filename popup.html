@@ -1,0 +1,166 @@
+﻿<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Persian Typo Fixer</title>
+<style>
+  /* Vazirmatn variable — local, offline-safe UI font */
+  @font-face{font-family:'Vazirmatn';font-style:normal;font-weight:100 900;font-display:swap;src:url('fonts/vazirmatn-arabic.woff2') format('woff2');unicode-range:U+0600-06FF,U+0750-077F,U+0870-088E,U+0890-0891,U+0897-08E1,U+08E3-08FF,U+200C-200E,U+2010-2011,U+204F,U+2E41,U+FB50-FDFF,U+FE70-FE74,U+FE76-FEFC;}
+  @font-face{font-family:'Vazirmatn';font-style:normal;font-weight:100 900;font-display:swap;src:url('fonts/vazirmatn-latin.woff2') format('woff2');unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD;}
+</style>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{width:380px;font-family:'Vazirmatn',Tahoma,sans-serif;background:#0f0f0f;color:#f1f1f1;direction:rtl;max-height:600px;overflow-y:auto}
+  .header{background:linear-gradient(135deg,#2563eb 0%,#1e40af 100%);padding:14px;text-align:center;position:sticky;top:0;z-index:5}
+  .header h1{font-size:17px;font-weight:800;display:flex;align-items:center;justify-content:center;gap:8px}
+  .header h1 svg{width:18px;height:18px;fill:white}
+  .header p{font-size:11px;opacity:0.85;margin-top:3px}
+  .ver{position:absolute;top:8px;left:10px;font-size:9px;background:rgba(0,0,0,0.25);padding:2px 6px;border-radius:20px}
+  .content{padding:12px}
+  .toggle-main{display:flex;align-items:center;justify-content:space-between;background:#1e1e1e;border:1px solid #2a2a2a;border-radius:12px;padding:11px 13px;margin-bottom:10px}
+  .toggle-main span{font-size:13px;font-weight:700;display:flex;align-items:center;gap:6px}
+  .toggle-main span svg{width:16px;height:16px;fill:#60a5fa}
+  .switch{position:relative;width:40px;height:22px;cursor:pointer;flex-shrink:0}
+  .switch input{opacity:0;width:0;height:0}
+  .slider{position:absolute;inset:0;background:#383838;border-radius:24px;transition:.3s}
+  .slider::before{content:'';position:absolute;width:16px;height:16px;right:3px;top:3px;background:white;border-radius:50%;transition:.3s}
+  input:checked + .slider{background:#2563eb}
+  input:checked + .slider::before{transform:translateX(-18px)}
+  .group-title{font-size:11px;color:#888;font-weight:700;margin:10px 2px 6px;display:flex;align-items:center;gap:5px}
+  .group-title svg{width:12px;height:12px;fill:#666}
+  .opts{display:grid;gap:6px}
+  .opt{display:flex;align-items:center;justify-content:space-between;background:#1a1a1a;border:1px solid #242424;border-radius:10px;padding:8px 11px}
+  .opt-info b{font-size:11.5px;font-weight:600;display:flex;align-items:center;gap:5px}
+  .opt-info b svg{width:11px;height:11px;fill:#9ca3af}
+  .opt-info span{font-size:10px;color:#777;display:block;margin-top:1px}
+  .test-box{background:#1a1a1a;border:1px solid #2a2a2a;border-radius:12px;padding:10px;margin-top:10px}
+  .test-box label{font-size:11px;color:#9ca3af;font-weight:600;display:flex;align-items:center;gap:5px;margin-bottom:6px}
+  .test-box label svg{width:12px;height:12px;fill:#9ca3af}
+  .test-box textarea{width:100%;background:#0f0f0f;color:#f1f1f1;border:1px solid #2a2a2a;border-radius:8px;padding:8px;font-family:'Vazirmatn',Tahoma,sans-serif;font-size:12px;min-height:56px;resize:vertical;outline:none;line-height:1.7}
+  .test-box textarea:focus{border-color:#2563eb}
+  .test-box textarea::placeholder{color:#555}
+  .test-result{margin-top:8px;background:#0f1f0f;border:1px solid #1e3a1e;border-radius:8px;padding:8px;font-size:12px;line-height:1.7;min-height:34px;word-break:break-word}
+  .test-result.empty{color:#555;background:#111;border-color:#222}
+  .notice-list{display:grid;gap:6px;margin-top:8px}
+  .notice-item{background:#1c1305;border:1px solid #7c4a03;border-right:3px solid #f59e0b;border-radius:8px;padding:7px 9px;font-size:11px;line-height:1.7;color:#fde68a}
+  .notice-item b{color:#fbbf24}
+  .btn-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+  .btn{padding:8px;border-radius:10px;font-family:inherit;font-size:11px;font-weight:600;cursor:pointer;border:1px solid #333;display:flex;align-items:center;justify-content:center;gap:6px;transition:.2s}
+  .btn-ghost{background:#1a1a1a;color:#9ca3af;border-color:#2a2a2a}
+  .btn-ghost:hover{background:#212121;color:#f1f1f1;border-color:#2563eb}
+  .btn svg{width:13px;height:13px;fill:currentColor}
+  .footer{padding:10px 12px;border-top:1px solid #1f1f1f;display:flex;gap:6px;flex-wrap:wrap;justify-content:center;background:#0a0a0a}
+  .footer a{font-size:10px;color:#888;text-decoration:none;background:#1a1a1a;padding:5px 9px;border-radius:20px;border:1px solid #2a2a2a;display:flex;align-items:center;gap:4px}
+  .footer a:hover{color:#fff;border-color:#2563eb}
+  .footer a svg{width:11px;height:11px;fill:currentColor}
+  .status{margin-top:8px;padding:7px;border-radius:8px;font-size:11px;text-align:center;display:none;align-items:center;justify-content:center;gap:6px;background:#0f1f0f;color:#7ec87e;border:1px solid #1e3a1e}
+  .status.show{display:flex}
+</style>
+</head>
+<body>
+  <div class="header">
+    <span class="ver">v1.4.1</span>
+    <h1>
+      <svg viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm-2 16c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm4-8h-5V3.5L16 10z"/></svg>
+      Persian Typo Fixer
+    </h1>
+    <p>اصلاح خودکار غلط‌های فارسی در تمام وب</p>
+  </div>
+
+  <div class="content">
+    <div class="toggle-main">
+      <span>
+        <svg viewBox="0 0 24 24"><path d="M17 7h-2.5l-1-1h-5l-1 1H7c-1.1 0-2 .9-2 2v6c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V9c0-1.1-.9-2-2-2zm-2 11H9v-2h6v2z"/></svg>
+        فعال‌سازی
+      </span>
+      <label class="switch" style="margin:0"><input type="checkbox" id="enabled" checked><span class="slider"></span></label>
+    </div>
+
+    <div id="siteRow" class="toggle-main" style="display:none">
+      <span style="font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:220px">
+        <svg viewBox="0 0 24 24"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zm6.93 6h-2.95c-.32-1.25-.78-2.45-1.38-3.56 1.84.63 3.37 1.91 4.33 3.56zM12 4.04c.83 1.2 1.48 2.53 1.91 3.96h-3.82c.43-1.43 1.08-2.76 1.91-3.96zM4.26 14C4.1 13.36 4 12.69 4 12s.1-1.36.26-2h3.38c-.08.66-.14 1.32-.14 2 0 .68.06 1.34.14 2H4.26zm.82 2h2.95c.32 1.25.78 2.45 1.38 3.56-1.84-.63-3.37-1.9-4.33-3.56zm2.95-8H5.08c.96-1.66 2.49-2.93 4.33-3.56C8.81 5.55 8.35 6.75 8.03 8zM12 19.96c-.83-1.2-1.48-2.53-1.91-3.96h3.82c-.43 1.43-1.08 2.76-1.91 3.96zM14.34 14H9.66c-.09-.66-.16-1.32-.16-2 0-.68.07-1.35.16-2h4.68c.09.65.16 1.32.16 2 0 .68-.07 1.34-.16 2zm.25 5.56c.6-1.11 1.06-2.31 1.38-3.56h2.95c-.96 1.65-2.49 2.93-4.33 3.56zM16.36 14h3.38c.16-.64.26-1.31.26-2s-.1-1.36-.26-2h-3.38c.08.66.14 1.32.14 2 0 .68-.06 1.34-.14 2z"/></svg>
+        <span id="siteHost" style="direction:ltr"></span>
+      </span>
+      <button id="siteToggle" class="btn btn-ghost" style="padding:6px 10px;font-size:10px;white-space:nowrap"></button>
+    </div>
+
+    <div class="group-title">
+      <svg viewBox="0 0 24 24"><path d="M9 4v1.38c-.83-.33-1.72-.5-2.61-.5-1.4 0-2.85.59-3.39 1.73l1.36 1.09C4.9 6.9 5.95 6.5 7 6.5c.87 0 1.66.26 2 .6v8.36c-.46.34-1.2.58-2 .58-1.2 0-2.3-.43-2.7-1.18l-1.35 1.07C4.3 16.9 5.85 17.5 7.39 17.5c.95 0 1.9-.2 2.61-.57V18h2V4H9z"/></svg>
+      حروف عربی
+    </div>
+    <div class="opts">
+      <div class="opt"><div class="opt-info"><b>ی و ک عربی</b><span>ي → ی ، ك → ک</span></div><label class="switch"><input type="checkbox" id="fixArabicYK" checked><span class="slider"></span></label></div>
+      <div class="opt"><div class="opt-info"><b>همزه و ة</b><span>أإ → ا ، ؤ → و ، ة → ه</span></div><label class="switch"><input type="checkbox" id="fixArabicAlef" checked><span class="slider"></span></label></div>
+      <div class="opt"><div class="opt-info"><b>حرکات عربی</b><span>حذف ً ٌ ٍ َ ُ ِ ّ</span></div><label class="switch"><input type="checkbox" id="fixTashkeel" checked><span class="slider"></span></label></div>
+      <div class="opt"><div class="opt-info"><b>کشیده</b><span>حذف ـ (تطویل)</span></div><label class="switch"><input type="checkbox" id="fixKashida" checked><span class="slider"></span></label></div>
+    </div>
+
+    <div class="group-title">
+      <svg viewBox="0 0 24 24"><path d="M3 5h18v2H3V5zm0 6h18v2H3v-2zm0 6h18v2H3v-2z"/></svg>
+      نیم‌فاصله و چسبیدگی
+    </div>
+    <div class="opts">
+      <div class="opt"><div class="opt-info"><b>نیم‌فاصله</b><span>می شود → می‌شود ، کتاب ها → کتاب‌ها</span></div><label class="switch"><input type="checkbox" id="fixZWNJ" checked><span class="slider"></span></label></div>
+      <div class="opt"><div class="opt-info"><b>های چسبیده</b><span>کتابها → کتاب‌ها</span></div><label class="switch"><input type="checkbox" id="fixAttachedHa" checked><span class="slider"></span></label></div>
+      <div class="opt"><div class="opt-info"><b>ترکیب‌های رایج</b><span>کتابخانه ، دانش‌آموز ، به‌طور</span></div><label class="switch"><input type="checkbox" id="fixCompounds" checked><span class="slider"></span></label></div>
+      <div class="opt"><div class="opt-info"><b>غلط‌های رایج</b><span>ان‌شاءالله ، اینکه ، آنکه</span></div><label class="switch"><input type="checkbox" id="fixCommonTypos" checked><span class="slider"></span></label></div>
+    </div>
+
+    <div class="group-title">
+      <svg viewBox="0 0 24 24"><path d="M6 17h3l2-4V7H7v4h2v1.5L6 17zm8 0h3l2-4V7h-4v4h2v1.5L14 17z"/></svg>
+      نقطه‌گذاری و فاصله
+    </div>
+    <div class="opts">
+      <div class="opt"><div class="opt-info"><b>فاصله‌گذاری</b><span>حذف فاصله قبل ، و .</span></div><label class="switch"><input type="checkbox" id="fixPunctuation" checked><span class="slider"></span></label></div>
+      <div class="opt"><div class="opt-info"><b>علائم فارسی</b><span>, → ، ، ; → ؛ ، ? → ؟</span></div><label class="switch"><input type="checkbox" id="fixPersianPunct" checked><span class="slider"></span></label></div>
+      <div class="opt"><div class="opt-info"><b>فاصله دوبل</b><span>حذف فاصله اضافی</span></div><label class="switch"><input type="checkbox" id="fixDoubleSpace" checked><span class="slider"></span></label></div>
+    </div>
+
+    <div class="group-title">
+      <svg viewBox="0 0 24 24"><path d="M11 7h2v2h-2V7zm0 4h2v6h-2v-6zm1-9C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/></svg>
+      اعداد و سایر (پیشرفته)
+    </div>
+    <div class="opts">
+      <div class="opt"><div class="opt-info"><b>ارقام عربی</b><span>٠-٩ → ۰-۹</span></div><label class="switch"><input type="checkbox" id="fixArabicDigits" checked><span class="slider"></span></label></div>
+      <div class="opt"><div class="opt-info"><b>ارقام لاتین به فارسی</b><span>خاموش پیش‌فرض — 123 → ۱۲۳</span></div><label class="switch"><input type="checkbox" id="fixLatinDigits"><span class="slider"></span></label></div>
+      <div class="opt"><div class="opt-info"><b>جداکننده فارسی</b><span>۱,۰۰۰ → ۱٬۰۰۰</span></div><label class="switch"><input type="checkbox" id="fixSeparators"><span class="slider"></span></label></div>
+      <div class="opt"><div class="opt-info"><b>تکرار حروف</b><span>سلااام → سلام</span></div><label class="switch"><input type="checkbox" id="fixRepeat"><span class="slider"></span></label></div>
+      <div class="opt"><div class="opt-info"><b>گیومه فارسی</b><span>"سلام" → «سلام»</span></div><label class="switch"><input type="checkbox" id="fixQuotes"><span class="slider"></span></label></div>
+      <div class="opt"><div class="opt-info"><b>هشدار معنایی</b><span>نوتیس میزارم/بزار داخل صفحه</span></div><label class="switch"><input type="checkbox" id="notices" checked><span class="slider"></span></label></div>
+    </div>
+
+    <div class="test-box">
+      <label>
+        <svg viewBox="0 0 24 24"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5z"/></svg>
+        تست زنده
+      </label>
+      <textarea id="testInput" placeholder="مثلاً: كتاب ها مي شود ،سلام  دنيا ١٢٣"></textarea>
+      <div id="testResult" class="test-result empty">نتیجه اینجا نمایش داده می‌شود</div>
+      <div id="noticeList" class="notice-list"></div>
+    </div>
+
+    <div id="status" class="status"></div>
+    <div class="btn-row">
+      <button id="openOptions" class="btn btn-ghost">
+        <svg viewBox="0 0 24 24"><path d="M19.14 12.94c.04-.3.06-.61.06-.94s-.02-.64-.06-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94L14.4 2.81c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.44.17-.47.41l-.39 2.54c-.6.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.04.3-.06.61-.06.94s.02.64.06.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.39 2.54c.03.24.23.41.47.41h3.84c.24 0 .44-.17.47-.41l.39-2.54c.6-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.03-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>
+        تنظیمات کامل
+      </button>
+      <button id="resetBtn" class="btn btn-ghost">
+        <svg viewBox="0 0 24 24"><path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>
+        بازنشانی
+      </button>
+    </div>
+  </div>
+
+  <div class="footer">
+    <a href="https://www.youtube.com/@AziziWC" target="_blank"><svg viewBox="0 0 24 24"><path d="M10 8v8l5-4z"/><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/></svg> AziziWC</a>
+    <a href="https://www.youtube.com/@The_azizi" target="_blank"><svg viewBox="0 0 24 24"><path d="M10 8v8l5-4z"/><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/></svg> The_azizi</a>
+    <a href="https://t.me/luluch_code" target="_blank"><svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm9.5 7.5l-2.5 1.2-1.1-.9 1.1-1.1 2.5 0.8zm-3.5 3l-6 3.5-2-2 8-4.5.5 1-6 2.5 1.5 1 4.5-2.5.5 1z"/></svg> تلگرام</a>
+    <a href="https://github.com/TheGreatAzizi" target="_blank"><svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.58 2 12.26c0 4.52 2.87 8.35 6.84 9.71.5.09.68-.22.68-.49v-1.7c-2.78.61-3.37-1.19-3.37-1.19-.45-1.16-1.11-1.47-1.11-1.47-.91-.63.07-.62.07-.62 1 .07 1.53 1.06 1.53 1.06.89 1.56 2.34 1.11 2.91.85.09-.66.35-1.11.63-1.37-2.22-.26-4.56-1.14-4.56-5.08 0-1.12.39-2.04 1.03-2.76-.1-.26-.45-1.3.1-2.7 0 0 .84-.27 2.75 1.05A9.2 9.2 0 0112 7.31c.85 0 1.71.12 2.51.34 1.91-1.32 2.75-1.05 2.75-1.05.55 1.4.2 2.44.1 2.7.64.72 1.03 1.64 1.03 2.76 0 3.95-2.34 4.82-4.57 5.08.36.32.68.94.68 1.9v2.82c0 .27.18.59.69.49A10.26 10.26 0 0022 12.26C22 6.58 17.52 2 12 2z"/></svg> گیت‌هاب</a>
+  </div>
+
+<script src="fixes.js"></script>
+<script src="popup.js"></script>
+</body>
+</html>
