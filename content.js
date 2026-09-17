@@ -1,4 +1,4 @@
-﻿// Persian Typo Fixer | content.js | By TheAzizi | v1.6.0
+﻿// Persian Typo Fixer | content.js | By TheAzizi | v1.7.0
 // استفاده از fixes.js مشترک
 
 let settings = { ...PTF_DEFAULTS };
@@ -271,13 +271,16 @@ let ptfNoticeQueue = [];
 let ptfNoticeShowing = false;
 
 function ptfEnsureNoticeRoot() {
-  let root = document.getElementById('ptf-notice-root');
+  let root = null;
+  try { root = document.getElementById('ptf-notice-root'); } catch(e) {}
   if (root) return root;
+  const parent = document.body || document.documentElement;
+  if (!parent) throw new Error('no parent yet'); // اول لود صفحه — بعدا دوباره تلاش می‌شود
   root = document.createElement('div');
   root.id = 'ptf-notice-root';
   root.setAttribute('dir', 'rtl');
   root.style.cssText = 'position:fixed;bottom:18px;left:18px;z-index:2147483647;display:flex;flex-direction:column;gap:8px;max-width:min(340px,90vw);font-family:Tahoma,sans-serif;';
-  (document.body || document.documentElement).appendChild(root);
+  parent.appendChild(root);
   return root;
 }
 
@@ -286,7 +289,16 @@ function ptfShowNextNotice() {
   const item = ptfNoticeQueue.shift();
   if (!item) return;
   ptfNoticeShowing = true;
-  const root = ptfEnsureNoticeRoot();
+  let root;
+  try {
+    root = ptfEnsureNoticeRoot();
+  } catch(e) {
+    // هنوز body ساخته نشده — آیتم را برگردان و بعدا تلاش کن
+    ptfNoticeQueue.unshift(item);
+    ptfNoticeShowing = false;
+    try { setTimeout(ptfShowNextNotice, 2000); } catch(e2) {}
+    return;
+  }
   const box = document.createElement('div');
   box.style.cssText = 'background:#141414;color:#f1f1f1;border:1px solid #b45309;border-right:4px solid #f59e0b;border-radius:10px;padding:10px 12px;font-size:12px;line-height:1.8;box-shadow:0 8px 28px rgba(0,0,0,.5);';
   const title = document.createElement('div');
@@ -378,7 +390,11 @@ function ptfIsWordBoundaryInput(e) {
 
 let ptfLastInputAt = 0;
 function ptfOnInput(e) {
-  try { ptfLastInputAt = Date.now(); } catch(err) {}
+  try {
+    // حین composition (پیشنهادهای Gboard/IME) دست نزن — آخرش compositionend می‌آید
+    if (e.isComposing) return;
+    ptfLastInputAt = Date.now();
+  } catch(err) {}
   const t = resolveEditableTarget(e);
   if (!t) return;
   // سر مرز کلمه فوری، بقیه با debounce — فقط بخش تمام‌شده (typing)
@@ -386,12 +402,31 @@ function ptfOnInput(e) {
 }
 
 function ptfOnKeyDown(e) {
-  if (e.key !== ' ' && e.key !== 'Enter') return;
+  try { if (e.isComposing) return; } catch(err) {}
   const t = resolveEditableTarget(e);
   if (!t) return;
-  // انتر یعنی متن تمام شده (ارسال) — کامل و همگام قبل از submit؛ فاصله یعنی ادامه — typing
-  if (e.key === 'Enter') { try { runFixOnElement(t, 'full'); } catch(err) {} }
-  else setTimeout(() => scheduleFix(t, 30, 'typing'), 25);
+  // انتر یعنی متن تمام شده (ارسال) — کامل و همگام قبل از submit
+  if (e.key === 'Enter') { try { runFixOnElement(t, 'full'); } catch(err) {} return; }
+  if (e.key === ' ') { setTimeout(() => scheduleFix(t, 30, 'typing'), 25); return; }
+  // هر کلید محتوایی: برای ادیتورهایی که input را قورت می‌دهند
+  if (e.ctrlKey || e.metaKey || e.altKey) return;
+  if (e.key && (e.key.length === 1 || e.key === 'Backspace' || e.key === 'Delete')) {
+    scheduleFix(t, 200, 'typing');
+  }
+}
+
+// beforeinput حتی وقتی سایت جلوی input را بگیرد هم می‌آید
+function ptfOnBeforeInput(e) {
+  const t = resolveEditableTarget(e);
+  if (!t) return;
+  scheduleFix(t, 150, 'typing');
+}
+
+function ptfOnCompositionEnd(e) {
+  const t = resolveEditableTarget(e);
+  if (!t) return;
+  try { ptfLastInputAt = Date.now(); } catch(err) {}
+  scheduleFix(t, 60, 'typing');
 }
 
 function ptfOnPaste(e) {
@@ -399,6 +434,12 @@ function ptfOnPaste(e) {
   if (!t) return;
   // متن پیست‌شده کامل است — حالت کامل
   setTimeout(() => scheduleFix(t, 40, 'full'), 40);
+}
+
+function ptfOnCutDrop(e) {
+  const t = resolveEditableTarget(e);
+  if (!t) return;
+  setTimeout(() => scheduleFix(t, 100, 'typing'), 100);
 }
 
 function ptfOnFocusIn(e) {
@@ -426,13 +467,19 @@ function ptfOnFocusOut(e) {
 }
 
 // لیسنرها را به یک روت (document یا shadowRoot) وصل کن
+// input/keydown به‌تنهایی کافی نیست: بعضی ادیتورها input را قورت می‌دهند
+// (برای همین beforeinput/keydown همه‌کلیدها هم گوش داده می‌شود)
 function ptfAttachRoot(root) {
   if (!root || root.__ptfAttached) return;
   try {
     root.__ptfAttached = true;
     root.addEventListener('input', ptfOnInput, true);
+    root.addEventListener('beforeinput', ptfOnBeforeInput, true);
     root.addEventListener('keydown', ptfOnKeyDown, true);
+    root.addEventListener('compositionend', ptfOnCompositionEnd, true);
     root.addEventListener('paste', ptfOnPaste, true);
+    root.addEventListener('cut', ptfOnCutDrop, true);
+    root.addEventListener('drop', ptfOnCutDrop, true);
     root.addEventListener('change', ptfOnChange, true);
     root.addEventListener('focusin', ptfOnFocusIn, true);
     root.addEventListener('focusout', ptfOnFocusOut, true);
@@ -511,6 +558,21 @@ chrome.storage.onChanged.addListener((changes, area) => {
   if (changes.disabledSites) ptfRefreshDisabledHosts();
 });
 
+// فوکس واقعی — داخل شدو هم پایین برو (document.activeElement فقط هاست را می‌دهد)
+function ptfDeepActiveElement() {
+  try {
+    let el = document.activeElement;
+    let guard = 0;
+    while (el && el.shadowRoot && guard < 10) {
+      guard++;
+      const inner = el.shadowRoot.activeElement;
+      if (!inner || inner === el) break;
+      el = inner;
+    }
+    return el;
+  } catch(e) { return null; }
+}
+
 // تور ایمنی: اگر سایتی ایونت input را قورت داد، فیلد فعالِ بدون تغییرِ اخیر بررسی شود
 const ptfSeenValues = new WeakMap();
 try {
@@ -518,8 +580,8 @@ try {
     try {
       if (!settings.enabled || ptfSiteOff()) return;
       if (typeof document.hasFocus === 'function' && !document.hasFocus()) return;
-      if (Date.now() - ptfLastInputAt < 2000) return;
-      const a = document.activeElement;
+      if (Date.now() - ptfLastInputAt < 1000) return;
+      const a = ptfDeepActiveElement();
       if (!a || !shouldHandle(a)) return;
       const cur = (a.tagName === 'INPUT' || a.tagName === 'TEXTAREA') ? a.value : (a.innerText || a.textContent || '');
       if (typeof cur !== 'string' || cur.length === 0 || cur.length > 100000) return;
@@ -530,7 +592,7 @@ try {
       const after = (a.tagName === 'INPUT' || a.tagName === 'TEXTAREA') ? a.value : (a.innerText || a.textContent || '');
       ptfSeenValues.set(a, after);
     } catch(e) {}
-  }, 2500);
+  }, 1500);
 } catch(e) {}
 
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {

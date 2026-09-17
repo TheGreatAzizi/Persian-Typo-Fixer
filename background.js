@@ -1,4 +1,4 @@
-﻿// Persian Typo Fixer | By TheAzizi | background.js | v1.6.0
+﻿// Persian Typo Fixer | By TheAzizi | background.js | v1.7.0
 chrome.runtime.onInstalled.addListener(async (details) => {
   if (details.reason === 'install') {
     const d = {
