@@ -64,6 +64,10 @@
   .links a svg{width:12px;height:12px;fill:currentColor}
   .toast{position:fixed;bottom:16px;left:50%;transform:translateX(-50%) translateY(80px);background:#1e1e1e;border:1px solid #333;padding:10px 16px;border-radius:10px;font-size:12px;opacity:0;transition:.3s;pointer-events:none}
   .toast.show{transform:translateX(-50%) translateY(0);opacity:1}
+  .dedication{background:linear-gradient(180deg,#1a1505 0%,#1e1e1e 100%);border:1px solid #6b4e0a;text-align:center}
+  .dedication h3{justify-content:center}
+  .dedication h3 svg{fill:#d4a017}
+  .dedication p{font-size:12.5px;line-height:2.1;color:#e8dcc0;max-width:640px;margin:0 auto}
   @media(max-width:640px){.ex{grid-template-columns:1fr;gap:4px}.ex .arrow{transform:rotate(90deg);justify-self:center}.grid-opts{grid-template-columns:1fr}}
 </style>
 </head>
@@ -169,6 +173,11 @@
         <input id="disabledInput" type="text" placeholder="example.com" style="flex:1;background:#0f0f0f;color:#f1f1f1;border:1px solid #2a2a2a;border-radius:10px;padding:10px 12px;font-family:inherit;font-size:12px;outline:none;direction:ltr;text-align:left">
         <button id="disabledAdd" class="btn btn-primary"><svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg> افزودن</button>
       </div>
+    </div>
+
+    <div class="card dedication">
+      <h3><svg viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg> پاسداشت زبان پارسی</h3>
+      <p>این افزونه کوششی است برای پاسداری از زبان پارسی، پیشکشی ناچیز به روان فردوسی بزرگ؛ آن رادمردی که این زبان را از تاراج فراموشی رهانید و شاهنامه را چون چراغی فراروی آیندگان نهاد. باشد که با درست نوشتن هر واژه‌ی پارسی، در زنده نگه داشتن این گنج کهن، ما را نیز دستی باشد.</p>
     </div>
 
     <div class="links">
