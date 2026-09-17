@@ -1,4 +1,4 @@
-﻿// Persian Typo Fixer | fixes.js | By TheAzizi | v1.4.3
+﻿// Persian Typo Fixer | fixes.js | By TheAzizi | v1.6.0
 // موتور جامع اصلاح فارسی - shared بین content/popup/options
 
 const PTF_DEFAULTS = {
@@ -45,6 +45,22 @@ const NEMI_ATTACHED_EXCEPTIONS = new Set([
   'نمین'
 ]);
 
+// آیا کلمه ممکن است به استثنا تبدیل شود؟ (خودش استثناست یا پیشوندِ یکی است)
+// مثلا «مید» ممکن است «میدان» شود پس نباید به «می‌د» تبدیل شود —
+// ولی «میخواستم» با اینکه با «میخ» شروع می‌شود باید جدا شود (می+خواستم محتمل‌تر است)
+function ptfHitsSet(word, set) {
+  for (const e of set) {
+    if (word === e || e.startsWith(word)) return true;
+  }
+  return false;
+}
+
+// حروف واقعی فارسی/عربی — بدون علائم نگارشی بازه عربی (، ؛ ؟ ٬ ٫ ٪ ٭ و ...)
+// چون U+0600 تا U+06FF شامل نقطه‌گذاری هم هست و مرز کلمه را خراب می‌کند
+// نکته: آ (0622) هم حرف است (آن، آیا، آمد) — بازه از 0621 شروع می‌شود
+const FA_L = '\\u0621-\\u064A\\u067E\\u0686\\u0698\\u06A9\\u06AF\\u06CC\\u06BE\\u06C0';
+const FA_END_STRICT = '(?![' + FA_L + '\\u200C])';
+
 // دیکشنری ترکیب‌ها: [غلط با فاصله] -> [درست]
 const PTF_COMPOUNDS = [
   // چسبیده (بدون فاصله و نیم‌فاصله)
@@ -86,7 +102,27 @@ const PTF_COMPOUNDS = [
   ['به طور', 'به‌طور'],
   ['بنی آدم', 'بنی‌آدم'],
   ['بسم الله', 'بسم‌الله'],
-  ['به هر حال', 'به‌هرحال']
+  ['به هر حال', 'به‌هرحال'],
+  ['به عنوان', 'به‌عنوان'],
+  ['بعنوان', 'به‌عنوان'],
+  ['به نفع', 'به‌نفع'],
+  ['به ضرر', 'به‌ضرر'],
+  ['به همراه', 'به‌همراه'],
+  ['به علاوه', 'به‌علاوه'],
+  ['به وسیله', 'به‌وسیله'],
+  ['بوسیله', 'به‌وسیله'],
+  ['به خاطر', 'به‌خاطر'],
+  ['به نظر', 'به‌نظر'],
+  ['از جمله', 'ازجمله'],
+  ['از قبیل', 'ازقبیل'],
+  ['با وجود', 'باوجود'],
+  ['در نتیجه', 'درنتیجه'],
+  ['در واقع', 'درواقع'],
+  ['در عین حال', 'درعین‌حال'],
+  ['پدر بزرگ', 'پدربزرگ'],
+  ['مادر بزرگ', 'مادربزرگ'],
+  ['خدا حافظ', 'خداحافظ'],
+  ['بنابر این', 'بنابراین']
 ];
 
 // غلط‌های رایج مذهبی/ربطی
@@ -108,6 +144,41 @@ const PTF_COMMON_TYPOS = [
   ['آزوقه', 'آذوقه'],
   ['املاء', 'املا'],
   ['حیات خلوت', 'حیاط خلوت'],
+  ['اطاق', 'اتاق'],
+  ['بلیط', 'بلیت'],
+  ['ایشالا', 'ان‌شاءالله'],
+  ['ایشالله', 'ان‌شاءالله'],
+  ['غورباقه', 'قورباغه'],
+  ['قورباقه', 'قورباغه'],
+  ['عملت', 'املت'],
+  ['غیمه', 'قیمه'],
+  ['قرمه', 'قورمه'],
+  ['ازر', 'عذر'],
+  ['معزرت', 'معذرت'],
+  ['زهن', 'ذهن'],
+  ['لزت', 'لذت'],
+  ['لذیز', 'لذیذ'],
+  ['لطفا', 'لطفاً'],
+  ['مثلا', 'مثلاً'],
+  ['تقریبا', 'تقریباً'],
+  ['معمولا', 'معمولاً'],
+  ['حتما', 'حتماً'],
+  ['اصلا', 'اصلاً'],
+  ['فعلا', 'فعلاً'],
+  ['اتفاقا', 'اتفاقاً'],
+  ['مخصوصا', 'مخصوصاً'],
+  ['خصوصا', 'خصوصاً'],
+  ['قاعدتا', 'قاعدتاً'],
+  ['نسبتا', 'نسبتاً'],
+  ['حول شدم', 'هول شدم'],
+  ['حول شد', 'هول شد'],
+  ['حول شده', 'هول شده'],
+  ['هول محور', 'حول محور'],
+  ['حل دادن', 'هل دادن'],
+  ['حل داد', 'هل داد'],
+  ['غریب الوقوع', 'قریب‌الوقوع'],
+  ['سفر هفت سین', 'سفره هفت‌سین'],
+  ['سفره هفت سین', 'سفره هفت‌سین'],
   ['این که', 'اینکه'],
   ['آن که', 'آنکه']
 ];
@@ -117,14 +188,30 @@ const PTF_COMMON_TYPOS = [
 const PTF_STEM_FIXES = [
   ['نمازگذار', 'نمازگزار'],
   ['بنیانگزار', 'بنیانگذار'],
-  ['قانونگزار', 'قانونگذار']
+  ['قانونگزار', 'قانونگذار'],
+  ['خدمتگذار', 'خدمتگزار'],
+  ['خوابگذار', 'خوابگزار'],
+  ['سپاسگذار', 'سپاسگزار'],
+  ['شکرگذار', 'شکرگزار']
+];
+
+// ریشه‌های همزه‌ای بدون ابهام (زیررشته‌ای — صرف‌ها را هم می‌گیرد: تاثیرات، متاسفم...)
+const PTF_SUB_FIXES = [
+  ['تاثیر', 'تأثیر'],
+  ['تاسیس', 'تأسیس'],
+  ['تاخیر', 'تأخیر'],
+  ['مایوس', 'مأیوس'],
+  ['متاسف', 'متأسف'],
+  ['تاسف', 'تأسف'],
+  ['قرمه', 'قورمه']
 ];
 
 // کلمات چسبیده اشتباه (مرز کلمه فارسی)
 const PTF_ATTACHED_FIXES = [
   ['همینطور', 'همین‌طور'],
   ['همونطور', 'همون‌طور'],
-  ['درمورد', 'در مورد']
+  ['درمورد', 'در مورد'],
+  ['بخاطر', 'به‌خاطر']
 ];
 
 // هشدارهای معنایی (ابهام معنایی — خودکار اصلاح نمی‌شود، فقط نوتیس)
@@ -144,25 +231,31 @@ function ptfFindNotices(text) {
   };
   let m;
   // ۱) می‌زارم/نمی‌زارم: یعنی زار زدن، نه گذاشتن
-  const zarRe = /(^|[\s\u200C\(\["'«])((ن)?می\u200C?زار(م|ی|ه|یم|ید|ن)?)(?![\u0600-\u06FF\u200C])/g;
+  const zarRe = new RegExp('(^|[\\s\\u200C\\(\\["\'«])((ن)?می\\u200C?زار(م|ی|ه|یم|ید|ن)?)' + FA_END_STRICT, 'g');
   while ((m = zarRe.exec(text)) !== null) {
     const word = m[2];
     push('zar', word, '«' + word + '» یعنی «زار زدن» (گریه و زاری). اگر منظورتان «گذاشتن» است، درست آن «می‌گذارم» (رسمی) یا «می‌ذارم» (محاوره‌ای) است.');
   }
   // ۲) بزار...: امر گذاشتن «بذار/بگذار» است نه «بزار»
-  const bzarRe = /(^|[\s\u200C\(\["'«])(بزار(م|ی|ه|یم|ید|ن)?)(?![\u0600-\u06FF\u200C])/g;
+  const bzarRe = new RegExp('(^|[\\s\\u200C\\(\\["\'«])(بزار(م|ی|ه|یم|ید|ن)?)' + FA_END_STRICT, 'g');
   while ((m = bzarRe.exec(text)) !== null) {
     const word = m[2];
     const suggest = word.replace('بزار', 'بذار');
     push('bzar', word, '«' + word + '» برای «گذاشتن» درست نیست؛ شکل محاوره‌ای آن «' + suggest + '» (رسمی: بگذار) است.');
   }
   // ۳) می‌گزارم: گزاردن یعنی انجام دادن (مگر کنار نماز/خدمت/خواب...)
-  const gozarRe = /(^|[\s\u200C\(\["'«])((ن)?می\u200C?گزار(م|ی|ه|یم|ید|ن)?)(?![\u0600-\u06FF\u200C])/g;
+  const gozarRe = new RegExp('(^|[\\s\\u200C\\(\\["\'«])((ن)?می\\u200C?گزار(م|ی|ه|یم|ید|ن)?)' + FA_END_STRICT, 'g');
   while ((m = gozarRe.exec(text)) !== null) {
     const word = m[2];
     const before = text.slice(Math.max(0, m.index - 16), m.index);
     if (PTF_NOTICE_GOTO_SUPPRESS.some(w => before.includes(w))) continue;
     push('gozar', word, '«' + word + '» از «گزاردن» است یعنی انجام دادن (مانند نماز گزاردن). اگر منظورتان «گذاشتن» است، بنویسید «می‌گذارم» یا «می‌ذارم».');
+  }
+  // ۴) می‌خاست/خاست: خاستن (برخاستن) با خواستن (میل) فرق دارد — «برخاست» قاطی نمی‌شود چون مرز می‌خواهد
+  const khastRe = new RegExp('(^|[\\s\\u200C\\(\\["\'«])((ن)?می\\u200C?خاست(م|ی|ه|یم|ید|ن)?|خاست(ه|ی|یم|ید|ن|گاری?)?)' + FA_END_STRICT, 'g');
+  while ((m = khastRe.exec(text)) !== null) {
+    const word = m[2];
+    push('khast', word, '«' + word + '»؟ «خاستن» (بدون واو) یعنی برخاستن؛ اگر منظورتان «خواستن» (میل و اراده) است با «واو» بنویسید: «می‌خواست».');
   }
   return out;
 }
@@ -180,7 +273,8 @@ function ptfFixArabicAlef(t) {
 }
 
 function ptfFixTashkeel(t) {
-  return t.replace(/[\u064B-\u065F\u0670]/g, '');
+  // تنوین روی الف (اً مثل لطفاً/مثلاً) درست است — حفظش کن
+  return t.replace(/اً/g, '\uE011').replace(/[\u064B-\u065F\u0670]/g, '').replace(/\uE011/g, 'اً');
 }
 
 function ptfFixKashida(t) {
@@ -198,25 +292,20 @@ function ptfNormalizeZWNJSpaces(t) {
   return out;
 }
 
-function ptfFixZWNJ(t, live) {
+function ptfFixZWNJ(t) {
   let out = t;
-  // مرز فارسی: بعدش حرف فارسی/نیم‌فاصله نباشد (جایگزین مرز ASCII که برای فارسی کار نمی‌کند)
-  const FA_END = '(?![\\u0600-\\u06FF\\u200C])';
-  // حالت live (وسط تایپ): تهِ متن مرز حساب نمی‌شود تا «بخوابیم ام»ِ در حال تایپِ «اما»
-  // با قانون ضمیر قاطی نشود — این‌ها موقع خروج از فیلد/پیست اعمال می‌شوند
-  const END = live ? '(?=[\\s.,،:؛!؟\\)\\]\\["\'»])' : FA_END;
+  // مرز فارسی: بعدش حرف فارسی/نیم‌فاصله نباشد (FA_END_STRICT سراسری — بدون علائم ، ؛ ؟)
+  const END = FA_END_STRICT;
   // پیشوند می/نمی/بی با فاصله -> نیم‌فاصله (حین تایپ هم امن است)
   out = out.replace(/(^|[\s\u200C\(\["'«])(می)\s+/g, '$1می\u200C');
   out = out.replace(/(^|[\s\u200C\(\["'«])(نمی)\s+/g, '$1نمی\u200C');
   out = out.replace(/(^|[\s\u200C\(\["'«])(بی)\s+/g, '$1بی\u200C');
-  // پایه «ه» + ضمیر/ای -> نیم‌فاصله: خانه ام -> خانه‌ام
-  out = out.replace(new RegExp('([\\u0600-\\u06FF]+ه)\\s+(ام|ات|اش|مان|تان|شان|ای|ایم|اید|اند|یی|یم|یت|یش)' + END, 'g'), '$1\u200C$2');
-  // خانه ی -> خانه‌ی (در live ته متن حساب نیست تا «خانه یادبود» خراب نشود)
-  out = live
-    ? out.replace(/([\u0600-\u06FF]+ه)\s+ی([\s.,،:؛!؟\)\]])/g, '$1\u200Cی$2')
-    : out.replace(/([\u0600-\u06FF]+ه)\s+ی(\s|$|[.,،:؛!؟\)\]\s])/g, '$1\u200Cی$2');
+  // پایه «ه/ۀ» + ضمیر/ای -> نیم‌فاصله: خانه ام -> خانه‌ام
+  out = out.replace(new RegExp('([' + FA_L + ']+[هۀ])\\s+(ام|ات|اش|مان|تان|شان|ای|ایم|اید|اند|یی|یم|یت|یش)' + END, 'g'), '$1\u200C$2');
+  out = out.replace(new RegExp('([' + FA_L + ']+[هۀ])\\s+ی(\\s|$|[.,،:؛!؟\\)\\]\\s])', 'g'), '$1\u200Cی$2');
   // پایه غیر «ه» + ضمیر -> چسبیده: کتاب ام -> کتابم (الف می‌افتد)، کتاب مان -> کتابمان
-  out = out.replace(new RegExp('([\\u0627\\u0628\\u067E\\u062A\\u062B\\u062C\\u0686\\u062D\\u062E\\u062F\\u0630\\u0631\\u0632\\u0698\\u0633\\u0634\\u0635\\u0636\\u0637\\u0638\\u0639\\u063A\\u0641\\u0642\\u06A9\\u06AF\\u0644\\u0645\\u0646\\u0648\\u06CC])\\s+(ام|ات|اش|مان|تان|شان)' + END, 'g'), (m, base, suf) => {
+  // (شامل معادل‌های عربی برای متن نرمال‌نشده: ك ي ة أإؤ)
+  out = out.replace(new RegExp('([\\u0621-\\u0627\\u0628\\u067E\\u062A\\u062B\\u062C\\u0686\\u062D\\u062E\\u062F\\u0630\\u0631\\u0632\\u0698\\u0633\\u0634\\u0635\\u0636\\u0637\\u0638\\u0639\\u063A\\u0641\\u0642\\u0643\\u06A9\\u0644\\u0645\\u0646\\u0648\\u0649\\u064A\\u06CC\\u0624\\u0629])\\s+(ام|ات|اش|مان|تان|شان)' + END, 'g'), (m, base, suf) => {
     if (suf === 'ام') return base + 'م';
     if (suf === 'ات') return base + 'ت';
     if (suf === 'اش') return base + 'ش';
@@ -225,14 +314,21 @@ function ptfFixZWNJ(t, live) {
   // به/کم/بیش + تر با فاصله -> چسبیده: به تر -> بهتر (نه به‌تر)
   out = out.replace(new RegExp('(^|[\\s\\u200C\\(\["\'«])(به|کم|بیش)\\s+(ترین|تری|تر)' + END, 'g'), '$1$2$3');
   // پسوند ها/تر با فاصله -> نیم‌فاصله
-  out = out.replace(new RegExp('([\\u0600-\\u06FF])\\s+(هایمان|هایتان|هایشان|هایم|هایت|هایش|هایی|های|ها|ترین|تری|تر)' + END, 'g'), '$1\u200C$2');
-  // می/نمی چسبیده بدون فاصله: میخواستم -> می‌خواستم (با استثنا: میز، میدان...)
-  out = out.replace(/(^|[\s\u200C\(\["'«])می([\u0600-\u06FF]{2,})(?![\u0600-\u06FF\u200C])/g, (m, pre, rest) => {
+  out = out.replace(new RegExp('([' + FA_L + '])\\s+(هایمان|هایتان|هایشان|هایم|هایت|هایش|هایی|های|ها|ترین|تری|تر)' + END, 'g'), '$1\u200C$2');
+  // می/نمی چسبیده بدون فاصله: میخواستم -> می‌خواستم
+  out = ptfFixAttachedMi(out);
+  return out;
+}
+
+// فقط قاعده می/نمی چسبیده (برای کلمه باز — بدون قوانین فاصله‌دار)
+function ptfFixAttachedMi(t) {
+  let out = t;
+  out = out.replace(new RegExp('(^|[\\s\\u200C\\(\\["\'«])می([' + FA_L + ']{2,})' + FA_END_STRICT, 'g'), (m, pre, rest) => {
     const full = 'می' + rest;
     if (MI_ATTACHED_EXCEPTIONS.has(full)) return m;
     return pre + 'می\u200C' + rest;
   });
-  out = out.replace(/(^|[\s\u200C\(\["'«])نمی([\u0600-\u06FF]{2,})(?![\u0600-\u06FF\u200C])/g, (m, pre, rest) => {
+  out = out.replace(new RegExp('(^|[\\s\\u200C\\(\\["\'«])نمی([' + FA_L + ']{2,})' + FA_END_STRICT, 'g'), (m, pre, rest) => {
     const full = 'نمی' + rest;
     if (NEMI_ATTACHED_EXCEPTIONS.has(full)) return m;
     return pre + 'نمی\u200C' + rest;
@@ -243,9 +339,9 @@ function ptfFixZWNJ(t, live) {
 function ptfFixAttachedHa(t) {
   // کتابها -> کتاب‌ها (با استثنا تنها/رها/شما/همه)
   const AFTER = '([\\s.,،:؛!؟\\)\\]\\["\'»\\u200C]|$)';
-  const re1 = new RegExp('([\\u0600-\\u06FF]{1,30}?)ها' + AFTER, 'g');
-  const re2 = new RegExp('([\\u0600-\\u06FF]{2,30}?)های' + AFTER, 'g');
-  const re3 = new RegExp('([\\u0600-\\u06FF]{2,30}?)هایی' + AFTER, 'g');
+  const re1 = new RegExp('([' + FA_L + ']{1,30}?)ها' + AFTER, 'g');
+  const re2 = new RegExp('([' + FA_L + ']{2,30}?)های' + AFTER, 'g');
+  const re3 = new RegExp('([' + FA_L + ']{2,30}?)هایی' + AFTER, 'g');
   return t
     .replace(re1, (m, base, after) => {
       const full = base + 'ها';
@@ -295,6 +391,14 @@ function ptfFixCommonTypos(t) {
 function ptfFixStems(t) {
   let out = t;
   for (const [wrong, correct] of PTF_STEM_FIXES) {
+    out = out.split(wrong).join(correct);
+  }
+  return out;
+}
+
+function ptfFixSubs(t) {
+  let out = t;
+  for (const [wrong, correct] of PTF_SUB_FIXES) {
     out = out.split(wrong).join(correct);
   }
   return out;
@@ -389,31 +493,8 @@ function ptfFixText(text, opts) {
     return '\uE000' + ptfIdxToLetters(placeholders.length - 1) + '\uE001';
   });
 
-  if (opts.fixKashida) out = ptfFixKashida(out);
-  if (opts.fixTashkeel) out = ptfFixTashkeel(out);
-  if (opts.fixArabicYK) out = ptfFixArabicYK(out);
-  if (opts.fixArabicAlef) out = ptfFixArabicAlef(out);
-  // حالت live (وسط تایپ): تهِ متنِ ناتمام مرز پسوند حساب نمی‌شود تا
-  // «بخوابیم ام»ِ در حال تایپِ «اما» با قانون ضمیر قاطی نشود
-  const live = !!(opts && opts.live);
-  if (opts.fixArabicDigits) out = ptfFixArabicDigits(out);
-  if (opts.fixLatinDigits) out = ptfFixLatinDigits(out);
-  out = ptfNormalizeZWNJSpaces(out);
-  if (opts.fixZWNJ) out = ptfFixZWNJ(out, live);
-  if (opts.fixCompounds) out = ptfFixCompounds(out);
-  if (opts.fixZWNJ) out = ptfFixZWNJ(out, live); // دومین پاس برای ترکیبات جدید
-  if (opts.fixAttachedHa) out = ptfFixAttachedHa(out);
-  if (opts.fixCommonTypos) out = ptfFixCommonTypos(out);
-  if (opts.fixCompounds) out = ptfFixStems(out);
-  if (opts.fixCompounds) out = ptfFixAttachedWords(out);
-  if (opts.fixZWNJ) out = ptfFixZWNJ(out, live); // سومین پاس برای کلمات جدید
-  if (opts.fixSeparators) out = ptfFixSeparators(out);
-  if (opts.fixPunctuation) out = ptfFixPunctuationSpacing(out);
-  if (opts.fixPersianPunct) out = ptfFixPersianPunct(out);
-  if (opts.fixDoubleSpace) out = ptfFixDoubleSpace(out);
-  if (opts.fixPunctuation && opts.fixDoubleSpace) out = out.replace(/ {2,}/g, ' ');
-  if (opts.fixRepeat) out = ptfFixRepeat(out);
-  if (opts.fixQuotes) out = ptfFixQuotes(out);
+  out = ptfFixChars(out, opts);
+  out = ptfFixWords(out, opts);
 
   // بازگردانی URLها
   out = out.replace(/\uE000([A-Z]+)\uE001/g, (m, letters) => {
@@ -426,6 +507,84 @@ function ptfFixText(text, opts) {
   return out;
 }
 
+// --- تفکیک امن برای حین تایپ ---
+// فاز حروف: جایگزینی تک‌حرفی 1:1، همیشه و همه‌جا امن (کرسر جابه‌جا نمی‌شود)
+function ptfFixChars(t, opts) {
+  let out = t;
+  if (opts.fixArabicYK) out = ptfFixArabicYK(out);
+  if (opts.fixArabicAlef) out = ptfFixArabicAlef(out);
+  if (opts.fixArabicDigits) out = ptfFixArabicDigits(out);
+  if (opts.fixLatinDigits) out = ptfFixLatinDigits(out);
+  return out;
+}
+
+// فاز کلمات: ادغام/حذف/فاصله‌گذاری — فقط روی متن تمام‌شده امن است
+function ptfFixWords(t, opts) {
+  let out = t;
+  if (opts.fixKashida) out = ptfFixKashida(out);
+  if (opts.fixTashkeel) out = ptfFixTashkeel(out);
+  out = ptfNormalizeZWNJSpaces(out);
+  if (opts.fixZWNJ) out = ptfFixZWNJ(out);
+  if (opts.fixCompounds) out = ptfFixCompounds(out);
+  if (opts.fixZWNJ) out = ptfFixZWNJ(out); // دومین پاس برای ترکیبات جدید
+  if (opts.fixAttachedHa) out = ptfFixAttachedHa(out);
+  if (opts.fixCommonTypos) out = ptfFixCommonTypos(out);
+  if (opts.fixCommonTypos) out = ptfFixSubs(out);
+  if (opts.fixCompounds) out = ptfFixStems(out);
+  if (opts.fixCompounds) out = ptfFixAttachedWords(out);
+  if (opts.fixZWNJ) out = ptfFixZWNJ(out); // سومین پاس برای کلمات جدید
+  if (opts.fixSeparators) out = ptfFixSeparators(out);
+  if (opts.fixPunctuation) out = ptfFixPunctuationSpacing(out);
+  if (opts.fixPersianPunct) out = ptfFixPersianPunct(out);
+  if (opts.fixDoubleSpace) out = ptfFixDoubleSpace(out);
+  if (opts.fixPunctuation && opts.fixDoubleSpace) out = out.replace(/ {2,}/g, ' ');
+  if (opts.fixRepeat) out = ptfFixRepeat(out);
+  if (opts.fixQuotes) out = ptfFixQuotes(out);
+  return out;
+}
+
+// متن قبل از کرسر را به (بخش تمام‌شده + کلمه بازِ در حال تایپ) تقسیم کن
+function ptfSplitStable(before) {
+  const m = before.match(/^([\s\S]*[\s.,،:؛!؟)\]"'»\n])([^]*)$/);
+  // کلمه باز فقط حروف است (بدون فاصله/نقطه‌گذاری) — وگرنه همه بسته است
+  if (m && new RegExp('^[' + FA_L + '\\u200C]*$').test(m[2])) return { closed: m[1], open: m[2] };
+  if (new RegExp('^[' + FA_L + '\\u200C]*$').test(before)) return { closed: '', open: before };
+  return { closed: before, open: '' };
+}
+
+// فاز کلمات روی «کلمه باز»: فقط قوانین تک‌کلمه‌ای امن
+// (قوانین فاصله‌دار خودکار no-op می‌شوند چون فاصله‌ای نیست؛ می چسبیده فقط
+// اگر با خانواده استثنا قاطی نشود — مثلا «مید» ممکن است «میدان» شود)
+function ptfFixOpenWord(open, opts) {
+  if (!open) return open;
+  let out = open;
+  if (opts.fixZWNJ && !ptfHitsSet(out, MI_ATTACHED_EXCEPTIONS) && !ptfHitsSet(out, NEMI_ATTACHED_EXCEPTIONS)) {
+    out = ptfFixAttachedMi(out);
+  }
+  if (opts.fixTashkeel) out = ptfFixTashkeel(out);
+  if (opts.fixKashida) out = ptfFixKashida(out);
+  if (opts.fixAttachedHa) out = ptfFixAttachedHa(out);
+  if (opts.fixCompounds) { out = ptfFixCompounds(out); out = ptfFixStems(out); out = ptfFixAttachedWords(out); }
+  if (opts.fixCommonTypos) out = ptfFixCommonTypos(out);
+  if (opts.fixRepeat) out = ptfFixRepeat(out);
+  return out;
+}
+
+// اصلاح مخصوص حین تایپ: فاز حروف روی کل متن + فاز کلمات روی بخش تمام‌شده
+// + قوانین تک‌کلمه‌ای امن روی کلمه باز — خروجی: {text, cursor} دقیق و بدون حدس
+function ptfFixTypingValue(value, cursor, opts) {
+  opts = opts || PTF_DEFAULTS;
+  if (!value || typeof value !== 'string') return { text: value, cursor };
+  const mapped = ptfFixChars(value, opts); // 1:1 پس کرسر عددی سر جایش می‌ماند
+  const c = Math.max(0, Math.min(cursor == null ? mapped.length : cursor, mapped.length));
+  const before = mapped.slice(0, c);
+  const after = mapped.slice(c);
+  const parts = ptfSplitStable(before);
+  const fixedClosed = ptfFixWords(parts.closed, opts);
+  const fixedOpen = ptfFixOpenWord(parts.open, opts);
+  return { text: fixedClosed + fixedOpen + after, cursor: fixedClosed.length + fixedOpen.length };
+}
+
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { PTF_DEFAULTS, ptfFixText, ptfFindNotices };
+  module.exports = { PTF_DEFAULTS, ptfFixText, ptfFindNotices, ptfFixChars, ptfFixWords, ptfSplitStable, ptfFixOpenWord, ptfFixTypingValue, ptfHitsSet };
 }

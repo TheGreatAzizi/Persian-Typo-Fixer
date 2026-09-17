@@ -1,4 +1,4 @@
-﻿// Persian Typo Fixer | options.js | By TheAzizi | v1.4.3
+﻿// Persian Typo Fixer | options.js | By TheAzizi | v1.6.0
 const ALL_KEYS = Object.keys(PTF_DEFAULTS);
 const testInput = document.getElementById('testInput');
 const testResult = document.getElementById('testResult');
@@ -42,10 +42,10 @@ function updateTest(){
   if(!v.trim()){ testResult.textContent='نتیجه اینجا'; testResult.classList.add('empty'); renderNotices(''); return; }
   testResult.classList.remove('empty');
   if(!/[\u0600-\u06FF]/.test(v)){ testResult.textContent=v; renderNotices(''); return; }
-  // مثل تایپ واقعی (live) تا وسط کلمه ادغام نشود
-  const fixed = ptfFixText(v, { ...opts, live: true });
-  testResult.textContent = fixed;
-  renderNotices(fixed);
+  // شبیه‌سازی دقیق تایپ واقعی: فقط بخش تمام‌شده (کرسر ته فرض می‌شود)
+  const r = ptfFixTypingValue(v, v.length, opts);
+  testResult.textContent = r.text;
+  renderNotices(r.text);
 }
 async function loadSettings(){
   const d = await chrome.storage.sync.get(PTF_DEFAULTS);

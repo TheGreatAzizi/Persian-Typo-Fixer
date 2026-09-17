@@ -1,4 +1,4 @@
-﻿// Persian Typo Fixer | content.js | By TheAzizi | v1.4.3
+﻿// Persian Typo Fixer | content.js | By TheAzizi | v1.6.0
 // استفاده از fixes.js مشترک
 
 let settings = { ...PTF_DEFAULTS };
@@ -31,20 +31,16 @@ function ptfFireInput(el) {
   }
 }
 
-function ptfOpts(live) {
-  return live ? { ...settings, live: true } : settings;
-}
-
-function fixInputElement(el, live) {
+function fixInputElement(el) {
+  // مسیر کامل: blur/paste/enter/change — کل متن
   if (!el || el.readOnly || el.disabled) return;
-  const opts = ptfOpts(live !== false);
   let start = null, end = null;
   try { start = el.selectionStart; end = el.selectionEnd; } catch(e) {}
   const oldVal = el.value;
-  const newVal = ptfFixText(oldVal, opts);
+  const newVal = ptfFixText(oldVal, settings);
   if (newVal === oldVal) return;
   const beforeOld = oldVal.slice(0, start == null ? oldVal.length : start);
-  const beforeNew = ptfFixText(beforeOld, opts);
+  const beforeNew = ptfFixText(beforeOld, settings);
   const diff = beforeNew.length - beforeOld.length;
   ptfSetNativeValue(el, newVal);
   try {
@@ -52,9 +48,30 @@ function fixInputElement(el, live) {
   } catch(e) {}
 }
 
-function fixContentEditable(el, live) {
+function fixInputTyping(el) {
+  // مسیر حین تایپ: فقط بخش تمام‌شده قبل از کرسر + کرسر دقیق از خروجی
+  if (!el || el.readOnly || el.disabled) return;
+  let start = null, end = null;
+  try { start = el.selectionStart; end = el.selectionEnd; } catch(e) {}
+  if (start == null || end == null || start !== end) {
+    // سلکشن بازه‌ای: فقط فاز حروف (1:1، امن) تا سلکشن به‌هم نریزد
+    const oldVal = el.value;
+    const newVal = ptfFixChars(oldVal, settings);
+    if (newVal !== oldVal) {
+      ptfSetNativeValue(el, newVal);
+      try { el.setSelectionRange(start, end); } catch(e) {}
+    }
+    return;
+  }
+  const r = ptfFixTypingValue(el.value, start, settings);
+  if (r.text === el.value) return;
+  ptfSetNativeValue(el, r.text);
+  try { el.setSelectionRange(r.cursor, r.cursor); } catch(e) {}
+}
+
+function fixContentEditable(el) {
+  // مسیر کامل: blur/paste/enter/change — کل متن
   if (!el || el.isContentEditable === false) return;
-  const opts = ptfOpts(live !== false);
   const sel = window.getSelection();
   if (!sel || sel.rangeCount === 0) return;
   const range = sel.getRangeAt(0);
@@ -74,14 +91,14 @@ function fixContentEditable(el, live) {
   let foundOffset = 0;
   // اول offset جدید را با کل متن حساب کن
   const oldFull = nodes.map(n => n.nodeValue).join('');
-  const newFull = ptfFixText(oldFull, opts);
+  const newFull = ptfFixText(oldFull, settings);
   if (newFull === oldFull) return;
   const beforeOld = oldFull.slice(0, startOffset);
-  const beforeNew = ptfFixText(beforeOld, opts);
+  const beforeNew = ptfFixText(beforeOld, settings);
   const newOffset = startOffset + (beforeNew.length - beforeOld.length);
 
   for (const n of nodes) {
-    const newVal = ptfFixText(n.nodeValue, opts);
+    const newVal = ptfFixText(n.nodeValue, settings);
     if (newVal !== n.nodeValue) n.nodeValue = newVal;
     const len = n.nodeValue.length;
     if (found === null && newOffset >= curPos && newOffset <= curPos + len) {
@@ -100,6 +117,78 @@ function fixContentEditable(el, live) {
     } catch(e) {}
   }
   // به فریم‌ورک‌ها (Draft/Slate/Lexical) خبر بده تا state را همگام کنند
+  ptfFireInput(el);
+}
+
+function fixContentEditableTyping(el) {
+  // مسیر حین تایپ: نود کرسر scoped + بقیه نودها فقط فاز حروف (1:1)
+  // جفت‌های چندنودی موقع خروج/پیست اعمال می‌شوند
+  if (!el || el.isContentEditable === false) return;
+  const sel = window.getSelection();
+  if (!sel || sel.rangeCount === 0) return;
+  const range = sel.getRangeAt(0);
+  if (!el.contains(range.startContainer)) return;
+  let startOffset = 0;
+  try {
+    const preRange = range.cloneRange();
+    preRange.selectNodeContents(el);
+    preRange.setEnd(range.startContainer, range.startOffset);
+    startOffset = preRange.toString().length;
+  } catch(e) { return; }
+
+  const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+  const nodes = [];
+  let node;
+  while (node = walker.nextNode()) nodes.push(node);
+  if (nodes.length === 0) return;
+
+  // نود کرسر را پیدا کن
+  let acc = 0, ci = -1, local = 0;
+  for (let i = 0; i < nodes.length; i++) {
+    const len = nodes[i].nodeValue.length;
+    if (ci === -1 && startOffset <= acc + len) { ci = i; local = startOffset - acc; }
+    acc += len;
+  }
+
+  let newGlobalCursor;
+  if (ci === -1) {
+    // کرسر ته ته (یا بیرون متن): فقط فاز حروف همه‌جا
+    for (const n of nodes) {
+      const v = ptfFixChars(n.nodeValue, settings);
+      if (v !== n.nodeValue) n.nodeValue = v;
+    }
+    newGlobalCursor = startOffset;
+  } else {
+    let gAcc = 0;
+    for (let i = 0; i < nodes.length; i++) {
+      const n = nodes[i];
+      if (i === ci) {
+        // نود کرسر: شبیه‌سازی تایپ + قوانین تک‌کلمه‌ای امن روی کلمه باز
+        const r = ptfFixTypingValue(n.nodeValue, Math.max(0, Math.min(local, n.nodeValue.length)), settings);
+        if (r.text !== n.nodeValue) n.nodeValue = r.text;
+        newGlobalCursor = gAcc + r.cursor;
+        gAcc += r.text.length;
+      } else {
+        const v = ptfFixChars(n.nodeValue, settings);
+        if (v !== n.nodeValue) n.nodeValue = v;
+        gAcc += n.nodeValue.length;
+      }
+    }
+  }
+
+  // بازگردانی کرسر
+  try {
+    let a2 = 0, fn = nodes[nodes.length - 1], fo = fn.nodeValue.length;
+    for (const n of nodes) {
+      if (newGlobalCursor <= a2 + n.nodeValue.length) { fn = n; fo = newGlobalCursor - a2; break; }
+      a2 += n.nodeValue.length;
+    }
+    const newRange = document.createRange();
+    newRange.setStart(fn, Math.max(0, Math.min(fo, fn.nodeValue.length)));
+    newRange.collapse(true);
+    sel.removeAllRanges();
+    sel.addRange(newRange);
+  } catch(e) {}
   ptfFireInput(el);
 }
 
@@ -137,10 +226,10 @@ function ptfTextLen(el) {
 
 // تایمر جدا برای هر فیلد تا فیلدها مزاحم هم نشوند
 const ptfTimers = new WeakMap();
-function scheduleFix(el, delay, live) {
+function scheduleFix(el, delay, mode) {
   if (!el || !settings.enabled || ptfSiteOff()) return;
   if (delay == null) delay = 150;
-  if (live == null) live = true; // حین تایپ: حالت live (ته متن ناتمام مرز نیست)
+  if (mode == null) mode = 'typing';
   // متن‌های غول‌پیکر را حین تایپ سنگین نکن — روی خروج از فیلد فیکس می‌شوند
   if (delay < 1000 && ptfTextLen(el) > 60000) delay = 1200;
   try {
@@ -150,26 +239,27 @@ function scheduleFix(el, delay, live) {
   try {
     ptfTimers.set(el, setTimeout(() => {
       try { ptfTimers.delete(el); } catch(e) {}
-      runFixOnElement(el, live);
+      runFixOnElement(el, mode);
     }, delay));
   } catch(e) {
-    runFixOnElement(el, live);
+    runFixOnElement(el, mode);
   }
 }
 
-function runFixOnElement(el, live) {
+function runFixOnElement(el, mode) {
   if (!el || !settings.enabled || ptfSiteOff()) return;
-  if (live == null) live = true;
+  // typing = فقط بخش تمام‌شده (امن وسط تایپ)؛ full = کل متن (خروج/پیست/انتر)
+  const typing = mode !== 'full';
   try {
     if (!el.isConnected && el !== document.body && el !== document.documentElement) {
       // المنت از DOM حذف شده — رها کن
     }
   } catch(e) {}
   if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') {
-    fixInputElement(el, live);
+    if (typing) fixInputTyping(el); else fixInputElement(el);
     checkNoticesForText(el.value);
   } else if (el.isContentEditable) {
-    fixContentEditable(el, live);
+    if (typing) fixContentEditableTyping(el); else fixContentEditable(el);
     checkNoticesForText(el.innerText || el.textContent || '');
   }
 }
@@ -291,37 +381,37 @@ function ptfOnInput(e) {
   try { ptfLastInputAt = Date.now(); } catch(err) {}
   const t = resolveEditableTarget(e);
   if (!t) return;
-  // سر مرز کلمه (فاصله/نقطه‌گذاری/انتر) فوری فیکس کن تا حس «زنده» بدهد — حالت live
-  scheduleFix(t, ptfIsWordBoundaryInput(e) ? 25 : 150, true);
+  // سر مرز کلمه فوری، بقیه با debounce — فقط بخش تمام‌شده (typing)
+  scheduleFix(t, ptfIsWordBoundaryInput(e) ? 25 : 150, 'typing');
 }
 
 function ptfOnKeyDown(e) {
   if (e.key !== ' ' && e.key !== 'Enter') return;
   const t = resolveEditableTarget(e);
   if (!t) return;
-  // انتر یعنی متن تمام شده (ارسال) — حالت کامل؛ فاصله یعنی ادامه دارد — live
-  if (e.key === 'Enter') setTimeout(() => scheduleFix(t, 30, false), 25);
-  else setTimeout(() => scheduleFix(t, 30, true), 25);
+  // انتر یعنی متن تمام شده (ارسال) — کامل و همگام قبل از submit؛ فاصله یعنی ادامه — typing
+  if (e.key === 'Enter') { try { runFixOnElement(t, 'full'); } catch(err) {} }
+  else setTimeout(() => scheduleFix(t, 30, 'typing'), 25);
 }
 
 function ptfOnPaste(e) {
   const t = resolveEditableTarget(e);
   if (!t) return;
   // متن پیست‌شده کامل است — حالت کامل
-  setTimeout(() => scheduleFix(t, 40, false), 40);
+  setTimeout(() => scheduleFix(t, 40, 'full'), 40);
 }
 
 function ptfOnFocusIn(e) {
-  // فیلدهای از قبل پرشده (درافت بازیابی‌شده و ...) موقع فوکس فیکس شوند — live چون ممکن است وسط کلمه باشد
+  // فیلدهای از قبل پرشده موقع فوکس — typing چون ممکن است وسط کلمه باشد
   const t = resolveEditableTarget(e);
   if (!t) return;
-  scheduleFix(t, 60, true);
+  scheduleFix(t, 60, 'typing');
 }
 
 function ptfOnChange(e) {
   const t = resolveEditableTarget(e);
   if (!t) return;
-  runFixOnElement(t, false);
+  runFixOnElement(t, 'full');
 }
 
 function ptfOnFocusOut(e) {
@@ -332,7 +422,7 @@ function ptfOnFocusOut(e) {
     if (old) { clearTimeout(old); ptfTimers.delete(t); }
   } catch(e) {}
   // خروج از فیلد یعنی تایپ تمام شده — حالت کامل
-  runFixOnElement(t, false);
+  runFixOnElement(t, 'full');
 }
 
 // لیسنرها را به یک روت (document یا shadowRoot) وصل کن
