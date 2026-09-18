@@ -7,9 +7,10 @@
 <p align="center">
   <a href="https://github.com/TheGreatAzizi/Persian-Typo-Fixer/releases"><img src="https://img.shields.io/github/v/release/TheGreatAzizi/Persian-Typo-Fixer?label=version&color=2563eb&style=flat-square" alt="Version"></a>
   <a href="https://github.com/TheGreatAzizi/Persian-Typo-Fixer/blob/main/manifest.json"><img src="https://img.shields.io/badge/manifest-v3-blue?style=flat-square" alt="Manifest V3"></a>
-  <a href="https://developer.chrome.com/docs/extensions/"><img src="https://img.shields.io/badge/Chrome-Extension-4285F4?style=flat-square&logo=googlechrome&logoColor=white" alt="Chrome Extension"></a>
+  <a href="https://developer.chrome.com/docs/extensions/"><img src="https://img.shields.io/badge/Chrome-88+-4285F4?style=flat-square&logo=googlechrome&logoColor=white" alt="Chrome 88+"></a>
   <a href="https://github.com/TheGreatAzizi/Persian-Typo-Fixer/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-green?style=flat-square" alt="MIT License"></a>
   <a href="https://github.com/TheGreatAzizi/Persian-Typo-Fixer"><img src="https://img.shields.io/github/stars/TheGreatAzizi/Persian-Typo-Fixer?style=flat-square" alt="Stars"></a>
+  <a href="https://github.com/TheGreatAzizi/Persian-Typo-Fixer/commits/main"><img src="https://img.shields.io/github/last-commit/TheGreatAzizi/Persian-Typo-Fixer?style=flat-square" alt="Last commit"></a>
 </p>
 
 <p align="center">
@@ -20,9 +21,29 @@
 
 **برنامه‌نویس: TheAzizi**
 
+## فهرست
+
+- [درباره پروژه](#about)
+- [پاسداشت زبان پارسی](#tribute)
+- [چه چیزی را درست می‌کند](#examples)
+- [هشدار معنایی](#notices)
+- [ویژگی‌ها](#features)
+- [نصب](#install)
+- [استفاده](#usage)
+- [فهرست کلمات دوحالته](#words)
+- [ساختار پروژه](#structure)
+- [نحوه کار](#how-it-works)
+- [توسعه و مشارکت](#dev)
+- [عیب‌یابی](#troubleshooting)
+- [حمایت](#support)
+- [لینک‌های سازنده](#links)
+- [لایسنس](#license)
+- [English summary](#english)
+
+<a id="about"></a>
 ## درباره پروژه
 
-**Persian Typo Fixer** یک افزونه کروم (Manifest V3) است که غلط‌های رایج تایپ فارسی را **همان لحظه تایپ** و در **هر فیلد واقعی هر سایتی** اصلاح می‌کند: چت کیک و یوتیوب، کامنت اینستاگرام، توییت، تلگرام وب، گوگل، فرم‌ها و هر `input` و `textarea` دیگری. نیازی به انتخاب متن یا فشردن دکمه نیست؛ کافی است فارسی بنویسید.
+**Persian Typo Fixer** یک افزونه کروم (Manifest V3، نیازمند کروم ۸۸ به بالا) است که غلط‌های رایج تایپ فارسی را **همان لحظه تایپ** و در **هر فیلد واقعی هر سایتی** اصلاح می‌کند: چت کیک و یوتیوب، کامنت اینستاگرام، توییت، تلگرام وب، گوگل، فرم‌ها و هر `input` و `textarea` دیگری. نیازی به انتخاب متن یا فشردن دکمه نیست؛ کافی است فارسی بنویسید.
 
 ### چرا این افزونه؟
 
@@ -30,10 +51,12 @@
 - نیم‌فاصله (`می‌شود` در برابر `می شود`) پرتکرارترین غلط نگارشی فارسی در وب است.
 - ابزارهای موجود یا فقط متن انتخاب‌شده را اصلاح می‌کنند یا با ادیتورهای مدرن (React) سازگار نیستند. این افزونه هنگام تایپ، با حفظ جای کرسر و سازگار با React/Vue کار می‌کند.
 
+<a id="tribute"></a>
 ## پاسداشت زبان پارسی
 
 > این افزونه کوششی است برای پاسداری از زبان پارسی، پیشکشی ناچیز به روان فردوسی بزرگ؛ آن رادمردی که این زبان را از تاراج فراموشی رهانید و شاهنامه را چون چراغی فراروی آیندگان نهاد. باشد که با درست نوشتن هر واژه‌ی پارسی، در زنده نگه داشتن این گنج کهن، ما را نیز دستی باشد.
 
+<a id="examples"></a>
 ## چه چیزی را درست می‌کند
 
 | غلط | درست | توضیح |
@@ -56,8 +79,7 @@
 | `١٢٣` | `۱۲۳` | ارقام عربی به فارسی |
 | `ســلام` | `سلام` | حذف کشیده (تطویل) و حرکات عربی |
 
-فهرست کامل کلمات دوحالته با فرق معنی در فایل **[WORDS.md](./WORDS.md)** است. کلمه‌ای جا افتاده؟ در Issues بگویید.
-
+<a id="notices"></a>
 ## هشدار معنایی (نوتیس)
 
 کلماتی که املای مشابه اما **معنای متفاوت** دارند خودکار عوض نمی‌شوند تا منظور شما خراب نشود؛ در عوض یک نوتیس آموزشی نمایش داده می‌شود (داخل صفحه هنگام تایپ + زیر تست زنده):
@@ -69,7 +91,8 @@
 
 نوتیس داخل صفحه هر کلمه را هر ۱۰ دقیقه فقط یک‌بار نشان می‌دهد و از تنظیمات خاموش می‌شود.
 
-## ویژگی‌های فنی
+<a id="features"></a>
+## ویژگی‌ها
 
 - **۱۸ حالت مستقل** — هر اصلاح (ی/ک عربی، نیم‌فاصله، ترکیب‌ها، اعداد، نقطه‌گذاری و ...) از پاپ‌آپ و تنظیمات جدا خاموش/روشن می‌شود.
 - **دیکشنری شخصی** — غلط/درست‌های خودت را در تنظیمات اضافه کن (تا ۲۰۰ کلمه)؛ حرف تو بر دیکشنری داخلی مقدم است.
@@ -81,7 +104,12 @@
 - **فونت رابط داخلی** — متن‌های خود افزونه با وزیرمتنِ داخل پکیج نمایش داده می‌شود؛ بدون نیاز به اینترنت.
 - **حریم خصوصی** — هیچ داده‌ای ارسال نمی‌شود؛ کل پردازش داخل مرورگر است.
 
+<a id="install"></a>
 ## نصب
+
+### پیش‌نیاز
+
+گوگل کروم (یا هر مرورگر کرومیومی) نسخه ۸۸ به بالا.
 
 ### نصب دستی (Developer Mode)
 
@@ -107,14 +135,21 @@ git clone https://github.com/TheGreatAzizi/Persian-Typo-Fixer.git
 
 به‌زودی منتشر می‌شود.
 
+<a id="usage"></a>
 ## استفاده
 
 1. روی آیکون افزونه کلیک کنید؛ مطمئن شوید «فعال‌سازی» روشن است.
 2. هر کدام از ۱۸ حالت را که نمی‌خواهید خاموش کنید.
 3. در کادر «تست زنده» بنویسید و نتیجه + هشدارها را ببینید.
-4. برای مدیریت سایت‌های غیرفعال و دیکشنری شخصی، صفحه «تنظیمات کامل» را باز کنید.
+4. برای دیکشنری شخصی و مدیریت سایت‌های غیرفعال، صفحه «تنظیمات کامل» را باز کنید.
 5. روی هر متن انتخاب‌شده در هر صفحه کلیک راست کنید («اصلاح فارسی و کپی») تا نسخه درستش کپی شود.
 
+<a id="words"></a>
+## فهرست کلمات دوحالته
+
+فهرست کامل کلمات گیج‌کننده با فرق معنی در فایل **[WORDS.md](./WORDS.md)** است. کلمه‌ای جا افتاده؟ در Issues بگویید.
+
+<a id="structure"></a>
 ## ساختار پروژه
 
 </div>
@@ -127,7 +162,7 @@ Persian-Typo-Fixer/
 ├── fixes.js        # موتور ptfFixText + ptfFindNotices + دیکشنری‌ها (مشترک)
 ├── content.js      # لیسنرها، حفظ کرسر، setter سازگار با React، نوتیس صفحه
 ├── popup.html/js   # پاپ‌آپ + تست زنده + غیرفعال‌سازی سایت فعلی
-├── options.html/js # تنظیمات کامل + نمونه‌ها + دیکشنری شخصی + لیست سایت‌های غیرفعال
+├── options.html/js # تنظیمات کامل + نمونه‌ها + دیکشنری شخصی + لیست سایت‌ها
 ├── background.js   # پیش‌فرض نصب + منوی راست‌کلیک (اصلاح و کپی)
 ├── fonts/          # وزیرمتن variable محلی (عربی + لاتین)
 ├── WORDS.md        # فهرست کلمات دوحالته
@@ -139,6 +174,7 @@ Persian-Typo-Fixer/
 
 <div dir="rtl">
 
+<a id="how-it-works"></a>
 ## نحوه کار (فنی)
 
 1. `fixes.js` دو فاز دارد: **حروف** (جایگزینی تک‌حرفی 1:1 مثل ی/ک عربی، همیشه امن) و **کلمات** (ادغام/حذف/فاصله‌گذاری).
@@ -146,7 +182,8 @@ Persian-Typo-Fixer/
 3. مرز کلمه فارسی با کلاس حروف واقعی (بدون علائم `، ؛ ؟`) پیاده شده، چون هم بازه یونیکد نقطه‌گذاری را هم شامل می‌شود و هم `\b` اسکی برای فارسی کار نمی‌کند.
 4. تنظیمات در `chrome.storage.sync` است و بین پاپ‌آپ/تنظیمات/تب‌ها زنده همگام می‌شود.
 
-## توسعه
+<a id="dev"></a>
+## توسعه و مشارکت
 
 کد را تغییر بدهید، بعد در `chrome://extensions` روی Reload افزونه بزنید و تب را رفرش کنید.
 
@@ -165,13 +202,20 @@ cd Persian-Typo-Fixer
 
 باگ یا پیشنهاد را در [Issues](https://github.com/TheGreatAzizi/Persian-Typo-Fixer/issues) ثبت کنید. پول‌ریکوئست هم پذیرفته می‌شود.
 
+<a id="troubleshooting"></a>
 ## عیب‌یابی
 
 1. بعد از هر آپدیت در `chrome://extensions` دکمه **Reload** افزونه را بزنید و تب را رفرش کنید.
-2. تoggles پاپ‌آپ (مخصوصا «فعال‌سازی») روشن باشد.
+2. گزینه‌های پاپ‌آپ (مخصوصا «فعال‌سازی») روشن باشد.
 3. در نوار آدرس و صفحات `chrome://` اسکریپت اجرا نمی‌شود؛ در یک سایت عادی تست کنید.
 4. ویرایشگرهای canvas (مثل گوگل‌داکس) و شدوی بسته محدودیت مرورگرند و پشتیبانی نمی‌شوند.
 
+<a id="support"></a>
+## حمایت
+
+اگر این افزونه به کارتان آمد، با یک ستاره به آن انرژی بدهید. پیشنهاد کلمه جدید برای دیکشنری هم بهترین کمک است.
+
+<a id="links"></a>
 ## لینک‌های سازنده
 
 - YouTube AziziWC: https://www.youtube.com/@AziziWC
@@ -179,6 +223,11 @@ cd Persian-Typo-Fixer
 - Telegram: https://t.me/luluch_code
 - X: https://x.com/the_azzi
 - GitHub: https://github.com/TheGreatAzizi
+
+<a id="english"></a>
+## English summary
+
+**Persian Typo Fixer** is a Manifest V3 Chrome extension that fixes common Persian typos live, in every real field of every website — Persian/Arabic Yeh & Kaf, ZWNJ (نیم‌فاصله), 200+ compound words, digits and punctuation — plus educational semantic warnings (e.g. می‌زارم vs می‌گذارم), a personal dictionary, per-site disable and right-click fix-and-copy. No data ever leaves the browser (MIT licensed). Install: `chrome://extensions` → Developer mode → Load unpacked. Issues and PRs are welcome.
 
 ## لایسنس
 
