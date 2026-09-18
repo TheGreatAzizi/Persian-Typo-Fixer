@@ -1,4 +1,4 @@
-﻿// Persian Typo Fixer | content.js | By TheAzizi | v1.9.0
+﻿// Persian Typo Fixer | content.js | By TheAzizi | v1.9.1
 // استفاده از fixes.js مشترک
 
 let settings = { ...PTF_DEFAULTS };
@@ -405,8 +405,17 @@ function ptfOnKeyDown(e) {
   try { if (e.isComposing) return; } catch(err) {}
   const t = resolveEditableTarget(e);
   if (!t) return;
-  // انتر یعنی متن تمام شده (ارسال) — کامل و همگام قبل از submit
-  if (e.key === 'Enter') { try { runFixOnElement(t, 'full'); } catch(err) {} return; }
+  if (e.key === 'Enter') {
+    // تک‌خطی: انتر یعنی ارسال — کامل و همگام قبل از submit (خط جدیدی در کار نیست)
+    // چندخطی (textarea/contenteditable): انتر یعنی خط جدید (حتی با شیفت) —
+    // هیچ دخالت همگامی ممنوع، وگرنه state ادیتورهای ریچ به‌هم می‌ریزد و خط جدید گم می‌شود
+    if (t.tagName === 'INPUT') {
+      try { runFixOnElement(t, 'full'); } catch(err) {}
+    } else {
+      setTimeout(() => scheduleFix(t, 40, 'typing'), 40);
+    }
+    return;
+  }
   if (e.key === ' ') { setTimeout(() => scheduleFix(t, 30, 'typing'), 25); return; }
   // هر کلید محتوایی: برای ادیتورهایی که input را قورت می‌دهند
   if (e.ctrlKey || e.metaKey || e.altKey) return;
