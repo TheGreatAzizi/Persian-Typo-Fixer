@@ -1,4 +1,4 @@
-﻿// Persian Typo Fixer | fixes.js | By TheAzizi | v1.8.0
+﻿// Persian Typo Fixer | fixes.js | By TheAzizi | v1.9.0
 // موتور جامع اصلاح فارسی - shared بین content/popup/options
 
 const PTF_DEFAULTS = {
@@ -20,7 +20,8 @@ const PTF_DEFAULTS = {
   fixRepeat: false,       // سلااام -> سلام (پیش‌فرض خاموش)
   fixQuotes: false,       // "..." فارسی -> «...» (پیش‌فرض خاموش)
   notices: true,          // نمایش هشدار معنایی (زار/گذار) داخل صفحه
-  disabledSites: []       // هاست‌هایی که افزونه در آن‌ها کار نکند (آرایه رشته)
+  disabledSites: [],      // هاست‌هایی که افزونه در آن‌ها کار نکند (آرایه رشته)
+  customWords: []         // دیکشنری شخصی: [{from, to, on}] — بالاترین اولویت
 };
 
 // استثناها برای «ها» چسبیده - این‌ها کلمه مستقل‌اند نه جمع
@@ -661,6 +662,30 @@ function ptfFixSubs(t) {
   return out;
 }
 
+// دیکشنری شخصی کاربر — بالاترین اولویت، هر جفت فقط یک‌بار به ترتیب لیست
+function ptfNormCustomFrom(s) {
+  return ptfFixArabicAlef(ptfFixArabicYK(String(s || '')));
+}
+function ptfFixCustomWords(t, customs) {
+  if (!Array.isArray(customs) || customs.length === 0) return t;
+  let out = t;
+  const list = customs.slice(0, 200);
+  for (const item of list) {
+    if (!item || typeof item !== 'object') continue;
+    if (item.on === false) continue;
+    let from = String(item.from || '').trim();
+    let to = String(item.to || '').trim();
+    if (!from || !to || from.length > 60 || to.length > 60) continue;
+    from = ptfNormCustomFrom(from);
+    if (!from || from === to) continue;
+    try {
+      const re = new RegExp(FA_PRE + '' + ptfEscapeRegExp(from) + FA_AFTER, 'g');
+      out = out.replace(re, '$1' + to.replace(/\$/g, '$$$$'));
+    } catch(e) {}
+  }
+  return out;
+}
+
 function ptfFixAttachedWords(t) {
   let out = t;
   for (const [wrong, correct] of PTF_ATTACHED_FIXES) {
@@ -784,6 +809,8 @@ function ptfFixWords(t, opts) {
   if (opts.fixKashida) out = ptfFixKashida(out);
   if (opts.fixTashkeel) out = ptfFixTashkeel(out);
   out = ptfNormalizeZWNJSpaces(out);
+  // دیکشنری شخصی اول — حرف کاربر بر داخلی‌ها مقدم است
+  out = ptfFixCustomWords(out, opts.customWords);
   if (opts.fixZWNJ) out = ptfFixZWNJ(out);
   if (opts.fixCompounds) out = ptfFixCompounds(out);
   if (opts.fixZWNJ) out = ptfFixZWNJ(out); // دومین پاس برای ترکیبات جدید
@@ -819,6 +846,8 @@ function ptfSplitStable(before) {
 function ptfFixOpenWord(open, opts) {
   if (!open) return open;
   let out = open;
+  // دیکشنری شخصی اول — حرف کاربر بر داخلی‌ها مقدم است
+  out = ptfFixCustomWords(out, opts.customWords);
   if (opts.fixZWNJ && !ptfHitsSet(out, MI_ATTACHED_EXCEPTIONS) && !ptfHitsSet(out, NEMI_ATTACHED_EXCEPTIONS)) {
     out = ptfFixAttachedMi(out);
   }
@@ -847,5 +876,5 @@ function ptfFixTypingValue(value, cursor, opts) {
 }
 
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { PTF_DEFAULTS, ptfFixText, ptfFindNotices, ptfFixChars, ptfFixWords, ptfSplitStable, ptfFixOpenWord, ptfFixTypingValue, ptfHitsSet };
+  module.exports = { PTF_DEFAULTS, ptfFixText, ptfFindNotices, ptfFixChars, ptfFixWords, ptfSplitStable, ptfFixOpenWord, ptfFixTypingValue, ptfFixCustomWords, ptfHitsSet };
 }

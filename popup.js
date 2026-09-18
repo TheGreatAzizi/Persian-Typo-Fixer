@@ -1,4 +1,4 @@
-﻿// Persian Typo Fixer | popup.js | By TheAzizi | v1.8.0
+﻿// Persian Typo Fixer | popup.js | By TheAzizi | v1.9.0
 const ALL_KEYS = Object.keys(PTF_DEFAULTS);
 const testInput = document.getElementById('testInput');
 const testResult = document.getElementById('testResult');
@@ -84,7 +84,8 @@ document.getElementById('openOptions').addEventListener('click', ()=>{
 });
 document.getElementById('resetBtn').addEventListener('click', async()=>{
   if(!confirm('بازنشانی به پیش‌فرض؟')) return;
-  await chrome.storage.sync.set(PTF_DEFAULTS);
+  const keep = await chrome.storage.sync.get({ customWords: [], disabledSites: [] });
+  await chrome.storage.sync.set({ ...PTF_DEFAULTS, customWords: keep.customWords || [], disabledSites: keep.disabledSites || [] });
   await loadSettings();
   showStatus('بازنشانی شد');
 });

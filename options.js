@@ -1,4 +1,4 @@
-﻿// Persian Typo Fixer | options.js | By TheAzizi | v1.8.0
+﻿// Persian Typo Fixer | options.js | By TheAzizi | v1.9.0
 const ALL_KEYS = Object.keys(PTF_DEFAULTS);
 const testInput = document.getElementById('testInput');
 const testResult = document.getElementById('testResult');
@@ -73,7 +73,8 @@ document.getElementById('copyBtn').addEventListener('click',()=>{
 });
 document.getElementById('resetBtn').addEventListener('click', async()=>{
   if(!confirm('بازنشانی؟')) return;
-  await chrome.storage.sync.set(PTF_DEFAULTS);
+  const keep = await chrome.storage.sync.get({ customWords: [], disabledSites: [] });
+  await chrome.storage.sync.set({ ...PTF_DEFAULTS, customWords: keep.customWords || [], disabledSites: keep.disabledSites || [] });
   await loadSettings();
   showToast('بازنشانی شد');
 });
@@ -129,3 +130,75 @@ document.getElementById('disabledAdd').addEventListener('click', async () => {
 });
 loadSettings();
 getDisabledSites().then(renderDisabledSites);
+
+// دیکشنری شخصی
+async function getCustomWords(){
+  const d = await chrome.storage.sync.get({ customWords: [] });
+  const list = Array.isArray(d.customWords) ? d.customWords : [];
+  return list.filter(x => x && typeof x === 'object');
+}
+function renderCustomWords(list){
+  const box = document.getElementById('customList');
+  if(!box) return;
+  box.innerHTML = '';
+  if(list.length === 0){
+    const p = document.createElement('div');
+    p.style.cssText = 'font-size:11px;color:#666;text-align:center;padding:6px';
+    p.textContent = 'خالی است — مثلاً غلط «دستخط» و درست «دست‌خط» را اضافه کن';
+    box.appendChild(p);
+    return;
+  }
+  list.forEach((w, idx) => {
+    const row = document.createElement('div');
+    row.style.cssText = 'display:flex;align-items:center;gap:8px;background:#0f0f0f;border:1px solid #222;border-radius:10px;padding:8px 12px;font-size:12px;opacity:' + (w.on === false ? '0.5' : '1');
+    const t = document.createElement('span');
+    t.style.cssText = 'flex:1;word-break:break-word';
+    t.textContent = w.from + ' ← ' + w.to;
+    const tg = document.createElement('button');
+    tg.className = 'btn btn-ghost';
+    tg.style.cssText = 'padding:5px 10px;font-size:11px';
+    tg.textContent = w.on === false ? 'فعال' : 'غیرفعال';
+    tg.addEventListener('click', async () => {
+      const cur = await getCustomWords();
+      if (cur[idx]) cur[idx].on = cur[idx].on === false ? true : false;
+      await chrome.storage.sync.set({ customWords: cur });
+      renderCustomWords(cur);
+      updateTest();
+    });
+    const del = document.createElement('button');
+    del.className = 'btn btn-ghost';
+    del.style.cssText = 'padding:5px 10px;font-size:11px';
+    del.textContent = 'حذف';
+    del.addEventListener('click', async () => {
+      const cur = await getCustomWords();
+      cur.splice(idx, 1);
+      await chrome.storage.sync.set({ customWords: cur });
+      renderCustomWords(cur);
+      updateTest();
+      showToast('حذف شد');
+    });
+    row.appendChild(t);
+    row.appendChild(tg);
+    row.appendChild(del);
+    box.appendChild(row);
+  });
+}
+document.getElementById('customAdd').addEventListener('click', async () => {
+  const fEl = document.getElementById('customFrom');
+  const tEl = document.getElementById('customTo');
+  const from = (fEl.value || '').trim();
+  const to = (tEl.value || '').trim();
+  if (!from || !to) { showToast('هر دو را بنویس'); return; }
+  if (from.length > 60 || to.length > 60) { showToast('حداکثر ۶۰ حرف'); return; }
+  const cur = await getCustomWords();
+  if (cur.length >= 200) { showToast('حداکثر ۲۰۰ کلمه'); return; }
+  if (cur.some(w => w.from === from)) { showToast('تکراری است'); return; }
+  cur.push({ from, to, on: true });
+  await chrome.storage.sync.set({ customWords: cur });
+  fEl.value = '';
+  tEl.value = '';
+  renderCustomWords(cur);
+  updateTest();
+  showToast('اضافه شد');
+});
+getCustomWords().then(renderCustomWords);

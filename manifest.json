@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Persian Typo Fixer",
   "description": "اصلاح خودکار غلط‌های فارسی + هشدار معنایی میزارم/بزار — نیم‌فاصله، اعداد، نقطه‌گذاری",
-  "version": "1.8.0",
+  "version": "1.9.0",
   "author": "TheAzizi",
   "homepage_url": "https://github.com/TheGreatAzizi",
   "icons": {
@@ -10,7 +10,7 @@
     "48": "icon48.png",
     "128": "icon128.png"
   },
-  "permissions": ["storage", "activeTab"],
+  "permissions": ["storage", "activeTab", "contextMenus", "clipboardWrite"],
   "host_permissions": ["<all_urls>"],
   "action": {
     "default_title": "Persian Typo Fixer",
