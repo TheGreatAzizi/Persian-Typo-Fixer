@@ -1,4 +1,4 @@
-﻿// Persian Typo Fixer | options.js | By TheAzizi | v1.7.1
+﻿// Persian Typo Fixer | options.js | By TheAzizi | v1.8.0
 const ALL_KEYS = Object.keys(PTF_DEFAULTS);
 const testInput = document.getElementById('testInput');
 const testResult = document.getElementById('testResult');
