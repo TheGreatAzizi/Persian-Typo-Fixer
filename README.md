@@ -5,7 +5,6 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/TheGreatAzizi/Persian-Typo-Fixer/releases"><img src="https://img.shields.io/github/v/release/TheGreatAzizi/Persian-Typo-Fixer?label=version&color=2563eb&style=flat-square" alt="Version"></a>
   <a href="https://github.com/TheGreatAzizi/Persian-Typo-Fixer/blob/main/manifest.json"><img src="https://img.shields.io/badge/manifest-v3-blue?style=flat-square" alt="Manifest V3"></a>
   <a href="https://developer.chrome.com/docs/extensions/"><img src="https://img.shields.io/badge/Chrome-88+-4285F4?style=flat-square&logo=googlechrome&logoColor=white" alt="Chrome 88+"></a>
   <a href="https://github.com/TheGreatAzizi/Persian-Typo-Fixer/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-green?style=flat-square" alt="MIT License"></a>
