@@ -1,4 +1,4 @@
-﻿// Persian Typo Fixer | fixes.js | By TheAzizi | v1.9.0
+﻿// Persian Typo Fixer | fixes.js | By TheAzizi | v1.9.2
 // موتور جامع اصلاح فارسی - shared بین content/popup/options
 
 const PTF_DEFAULTS = {

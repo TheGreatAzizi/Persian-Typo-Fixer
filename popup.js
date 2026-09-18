@@ -1,4 +1,4 @@
-﻿// Persian Typo Fixer | popup.js | By TheAzizi | v1.9.0
+﻿// Persian Typo Fixer | popup.js | By TheAzizi | v1.9.2
 const ALL_KEYS = Object.keys(PTF_DEFAULTS);
 const testInput = document.getElementById('testInput');
 const testResult = document.getElementById('testResult');

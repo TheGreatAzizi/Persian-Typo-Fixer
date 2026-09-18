@@ -1,4 +1,4 @@
-﻿// Persian Typo Fixer | content.js | By TheAzizi | v1.9.1
+﻿// Persian Typo Fixer | content.js | By TheAzizi | v1.9.2
 // استفاده از fixes.js مشترک
 
 let settings = { ...PTF_DEFAULTS };
@@ -128,6 +128,10 @@ function fixContentEditableTyping(el) {
   if (!sel || sel.rangeCount === 0) return;
   const range = sel.getRangeAt(0);
   if (!el.contains(range.startContainer)) return;
+  try {
+    // سلکشن بازه‌ای (کاربر دارد متن انتخاب می‌کند): به‌هیچ‌وجه دست نزن
+    if (!range.collapsed) return;
+  } catch(e) {}
   let startOffset = 0;
   try {
     const preRange = range.cloneRange();
@@ -150,12 +154,13 @@ function fixContentEditableTyping(el) {
     acc += len;
   }
 
+  let changed = false;
   let newGlobalCursor;
   if (ci === -1) {
     // کرسر ته ته (یا بیرون متن): فقط فاز حروف همه‌جا
     for (const n of nodes) {
       const v = ptfFixChars(n.nodeValue, settings);
-      if (v !== n.nodeValue) n.nodeValue = v;
+      if (v !== n.nodeValue) { n.nodeValue = v; changed = true; }
     }
     newGlobalCursor = startOffset;
   } else {
@@ -165,16 +170,19 @@ function fixContentEditableTyping(el) {
       if (i === ci) {
         // نود کرسر: شبیه‌سازی تایپ + قوانین تک‌کلمه‌ای امن روی کلمه باز
         const r = ptfFixTypingValue(n.nodeValue, Math.max(0, Math.min(local, n.nodeValue.length)), settings);
-        if (r.text !== n.nodeValue) n.nodeValue = r.text;
+        if (r.text !== n.nodeValue) { n.nodeValue = r.text; changed = true; }
         newGlobalCursor = gAcc + r.cursor;
         gAcc += r.text.length;
       } else {
         const v = ptfFixChars(n.nodeValue, settings);
-        if (v !== n.nodeValue) n.nodeValue = v;
+        if (v !== n.nodeValue) { n.nodeValue = v; changed = true; }
         gAcc += n.nodeValue.length;
       }
     }
   }
+
+  // چیزی عوض نشده؟ به سلکشن و ادیتور دست نزن (مهم برای ProseMirror و امثالش)
+  if (!changed) return;
 
   // بازگردانی کرسر
   try {
