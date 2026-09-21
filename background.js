@@ -1,4 +1,4 @@
-﻿// Persian Typo Fixer | By TheAzizi | background.js | v1.10.0
+﻿// Persian Typo Fixer | By TheAzizi | background.js | v1.11.0
 try { importScripts('fixes.js'); } catch (e) {}
 
 const PTF_BG_DEFAULTS = (typeof PTF_DEFAULTS !== 'undefined') ? PTF_DEFAULTS : {

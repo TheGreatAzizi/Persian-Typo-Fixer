@@ -1,4 +1,4 @@
-﻿// Persian Typo Fixer | content.js | By TheAzizi | v1.10.0
+﻿// Persian Typo Fixer | content.js | By TheAzizi | v1.11.0
 // استفاده از fixes.js مشترک
 
 let settings = { ...PTF_DEFAULTS };

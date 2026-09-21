@@ -1,4 +1,4 @@
-﻿// Persian Typo Fixer | fixes.js | By TheAzizi | v1.10.0
+﻿// Persian Typo Fixer | fixes.js | By TheAzizi | v1.11.0
 // موتور جامع اصلاح فارسی - shared بین content/popup/options
 
 const PTF_DEFAULTS = {
@@ -372,6 +372,7 @@ const PTF_COMMON_TYPOS = [
   ['آزوقه', 'آذوقه'],
   ['املاء', 'املا'],
   ['حیات خلوت', 'حیاط خلوت'],
+  ['حیات خانه', 'حیاط خانه'],
   ['اطاق', 'اتاق'],
   ['بلیط', 'بلیت'],
   ['ایشالا', 'ان‌شاءالله'],
@@ -509,6 +510,12 @@ function ptfFindNotices(text) {
   while ((m = khastRe.exec(text)) !== null) {
     const word = m[2];
     push('khast', word, '«' + word + '»؟ «خاستن» (بدون واو) یعنی برخاستن؛ اگر منظورتان «خواستن» (میل و اراده) است با «واو» بنویسید: «می‌خواست».');
+  }
+  // ۵) حیات تنها: یعنی زندگی — اگر محوطه خانه است، حیاط است. مثل بزار/بذار همیشه سؤال کن
+  const hayatRe = new RegExp(FA_PRE + '(حیات)' + FA_END_STRICT, 'g');
+  while ((m = hayatRe.exec(text)) !== null) {
+    const word = m[2];
+    push('hayat', word, '«حیات» یعنی زندگی؛ اگر منظورتان محوطه خانه است درست آن «حیاط» است — مطمئنی منظورت همینه؟');
   }
   return out;
 }
@@ -702,8 +709,13 @@ function ptfFixPunctuationSpacing(t) {
   let out = t;
   out = out.replace(/\s+([.,،:؛!؟?;…\)\]])/g, '$1');
   out = out.replace(/([\(\[])\s+/g, '$1');
-  // فاصله بعد از نقطه‌گذاری، به‌جز بین ارقام (لاتین/فارسی/عربی) و علائم پشت سر هم
-  out = out.replace(new RegExp('([.,،:؛!؟?;…])([^\\s' + ALL_DIGITS + '.,،:؛!؟?;…])', 'g'), '$1 $2');
+  // فاصله بعد از نقطه‌گذاری، به‌جز بین ارقام، علائم پشت سر هم،
+  // و داخل توکن لاتین (دامنه، ورژن، فایل: example.com) — انگلیسی دست نمی‌خورد
+  out = out.replace(new RegExp('([.,،:؛!؟?;…])([^\\s' + ALL_DIGITS + '.,،:؛!؟?;…])', 'g'), (m, p1, p2, off, str) => {
+    const prev = str[off - 1] || '';
+    if (/[A-Za-z0-9]/.test(prev) && /[A-Za-z0-9]/.test(p2)) return m;
+    return p1 + ' ' + p2;
+  });
   return out;
 }
 
@@ -771,9 +783,11 @@ function ptfFixText(text, opts) {
   if (!/[\u0600-\u06FF]/.test(text)) return text;
   opts = opts || PTF_DEFAULTS;
 
-  // محافظت از URL/ایمیل
+  // محافظت از URL/ایمیل/دامنه (حتی بدون پروتکل مثل example.com)
   const placeholders = [];
-  let out = text.replace(/https?:\/\/[^\s<>"']+|www\.[^\s<>"']+|[\w.+-]+@[\w-]+\.[\w.]+/g, (m) => {
+  const bareDomain = '(?:[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?\\.)+[A-Za-z]{2,}(?::\\d{1,5})?(?:\\/[^\\s<>"\']*)?';
+  const urlRe = new RegExp('https?:\\/\\/[^\\s<>"\']+|www\\.[^\\s<>"\']+|[\\w.+-]+@[\\w-]+\\.[\\w.]+|' + bareDomain, 'g');
+  let out = text.replace(urlRe, (m) => {
     placeholders.push(m);
     return '\uE000' + ptfIdxToLetters(placeholders.length - 1) + '\uE001';
   });
