@@ -5,6 +5,12 @@
   "version": "1.10.0",
   "author": "TheAzizi",
   "homepage_url": "https://github.com/TheGreatAzizi",
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "{a2f89601-d204-41c1-b317-3aaccfeb4448}",
+      "strict_min_version": "121.0"
+    }
+  },
   "icons": {
     "16": "icon16.png",
     "48": "icon48.png",

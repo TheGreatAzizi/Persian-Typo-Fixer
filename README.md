@@ -42,7 +42,7 @@
 <a id="about"></a>
 ## درباره پروژه
 
-**Persian Typo Fixer** یک افزونه کروم (Manifest V3، نیازمند کروم ۸۸ به بالا) است که غلط‌های رایج تایپ فارسی را **همان لحظه تایپ** و در **هر فیلد واقعی هر سایتی** اصلاح می‌کند: چت کیک و یوتیوب، کامنت اینستاگرام، توییت، تلگرام وب، گوگل، فرم‌ها و هر `input` و `textarea` دیگری. نیازی به انتخاب متن یا فشردن دکمه نیست؛ کافی است فارسی بنویسید.
+**Persian Typo Fixer** یک افزونه کروم و فایرفاکس (Manifest V3) است که غلط‌های رایج تایپ فارسی را **همان لحظه تایپ** و در **هر فیلد واقعی هر سایتی** اصلاح می‌کند: چت کیک و یوتیوب، کامنت اینستاگرام، توییت، تلگرام وب، گوگل، فرم‌ها و هر `input` و `textarea` دیگری. نیازی به انتخاب متن یا فشردن دکمه نیست؛ کافی است فارسی بنویسید.
 
 ### چرا این افزونه؟
 
@@ -106,17 +106,25 @@
 <a id="install"></a>
 ## نصب
 
+این افزونه هم برای **کروم** و هم برای **فایرفاکس** نسخه دارد (یک کد مشترک + بیلد جدا با `node build.mjs`).
+
 ### پیش‌نیاز
 
-گوگل کروم (یا هر مرورگر کرومیومی) نسخه ۸۸ به بالا.
+- گوگل کروم (یا هر مرورگر کرومیومی) نسخه ۸۸ به بالا، یا
+- فایرفاکس نسخه ۱۲۱ به بالا
 
-### نصب دستی (Developer Mode)
+### نصب دستی در کروم (Developer Mode)
 
 1. پروژه را دانلود کنید یا کلون بگیرید.
 2. در کروم به `chrome://extensions` بروید.
 3. `Developer mode` را از بالا فعال کنید.
 4. `Load unpacked` را بزنید و پوشه پروژه را انتخاب کنید.
 5. تمام شد — هرجا فارسی تایپ کنید خودکار درست می‌شود.
+
+### نصب در فایرفاکس
+
+- **موقت (توسعه):** به `about:debugging#/runtime/this-firefox` بروید، `Load Temporary Add-on` را بزنید و فایل `manifest.json` داخل پوشه `dist/firefox` (خروجی `node build.mjs`) را انتخاب کنید. توجه: با بستن فایرفاکس پاک می‌شود.
+- **دائمی:** نسخه فایرفاکس باید از طریق addons.mozilla.org امضا شود (فایل `Persian-Typo-Fixer-firefox-v*.zip` داخل `dist`). به‌زودی منتشر می‌شود.
 
 </div>
 
@@ -157,7 +165,9 @@ git clone https://github.com/TheGreatAzizi/Persian-Typo-Fixer.git
 
 ```
 Persian-Typo-Fixer/
-├── manifest.json   # Manifest V3 — content_scripts: fixes.js + content.js
+├── manifest.json         # کروم (Manifest V3)
+├── manifest.firefox.json # فایرفاکس (Manifest V3 + gecko id)
+├── build.mjs             # بیلد dist/chrome و dist/firefox + فایل ZIP هر استور
 ├── fixes.js        # موتور ptfFixText + ptfFindNotices + دیکشنری‌ها (مشترک)
 ├── content.js      # لیسنرها، حفظ کرسر، setter سازگار با React، نوتیس صفحه
 ├── popup.html/js   # پاپ‌آپ + تست زنده + غیرفعال‌سازی سایت فعلی
@@ -226,7 +236,7 @@ cd Persian-Typo-Fixer
 <a id="english"></a>
 ## English summary
 
-**Persian Typo Fixer** is a Manifest V3 Chrome extension that fixes common Persian typos live, in every real field of every website — Persian/Arabic Yeh & Kaf, ZWNJ (نیم‌فاصله), 200+ compound words, digits and punctuation — plus educational semantic warnings (e.g. می‌زارم vs می‌گذارم), a personal dictionary, per-site disable and right-click fix-and-copy. No data ever leaves the browser (MIT licensed). Install: `chrome://extensions` → Developer mode → Load unpacked. Issues and PRs are welcome.
+**Persian Typo Fixer** is a Manifest V3 Chrome & Firefox extension that fixes common Persian typos live, in every real field of every website — Persian/Arabic Yeh & Kaf, ZWNJ (نیم‌فاصله), 200+ compound words, digits and punctuation — plus educational semantic warnings (e.g. می‌زارم vs می‌گذارم), a personal dictionary, per-site disable and right-click fix-and-copy. No data ever leaves the browser (MIT licensed). Install: `chrome://extensions` → Developer mode → Load unpacked. Issues and PRs are welcome.
 
 ## لایسنس
 
