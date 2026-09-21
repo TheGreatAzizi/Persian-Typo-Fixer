@@ -22,7 +22,7 @@ function readUI(){
 function renderNotices(fixed){
   const box = document.getElementById('noticeList');
   if(!box) return;
-  box.innerHTML = '';
+  box.replaceChildren();
   let list = [];
   try { list = ptfFindNotices(fixed) || []; } catch(e) {}
   for(const n of list){
@@ -137,3 +137,4 @@ document.getElementById('siteToggle').addEventListener('click', async () => {
 
 loadSettings();
 loadSiteRow();
+

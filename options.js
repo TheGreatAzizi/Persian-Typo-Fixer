@@ -20,7 +20,7 @@ function readUI(){
 function renderNotices(fixed){
   const box = document.getElementById('noticeList');
   if(!box) return;
-  box.innerHTML = '';
+  box.replaceChildren();
   let list = [];
   try { list = ptfFindNotices(fixed) || []; } catch(e) {}
   for(const n of list){
@@ -88,7 +88,7 @@ async function getDisabledSites(){
 function renderDisabledSites(list){
   const box = document.getElementById('disabledList');
   if(!box) return;
-  box.innerHTML = '';
+  box.replaceChildren();
   if(list.length === 0){
     const p = document.createElement('div');
     p.style.cssText = 'font-size:11px;color:#666;text-align:center;padding:6px';
@@ -140,7 +140,7 @@ async function getCustomWords(){
 function renderCustomWords(list){
   const box = document.getElementById('customList');
   if(!box) return;
-  box.innerHTML = '';
+  box.replaceChildren();
   if(list.length === 0){
     const p = document.createElement('div');
     p.style.cssText = 'font-size:11px;color:#666;text-align:center;padding:6px';
@@ -202,3 +202,4 @@ document.getElementById('customAdd').addEventListener('click', async () => {
   showToast('اضافه شد');
 });
 getCustomWords().then(renderCustomWords);
+
